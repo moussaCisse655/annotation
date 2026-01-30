@@ -13,10 +13,17 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_FILE)
-    if "comment_id" not in df.columns or "text" not in df.columns:
-        st.error("Le fichier CSV doit contenir 'comment_id' et 'text'")
+
+    if "text" not in df.columns:
+        st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
+
+    # 🔥 Création automatique d’un ID UNIQUE par commentaire
+    df = df.reset_index(drop=True)
+    df["comment_id"] = df.index.astype(str)
+
     return df
+
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
