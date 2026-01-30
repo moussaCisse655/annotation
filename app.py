@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import os
+import hashlib
 
-DATA_FILE = "data.csv"   # adapte si besoin
+DATA_FILE = "data.csv"   # ton vrai fichier
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOTATIONS = 3
 
@@ -13,11 +14,20 @@ st.title("📝 Plateforme d'annotation de commentaires")
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_FILE)
-    df["comment_id"] = df.index.astype(str)
+
+    # ID STABLE PAR COMMENTAIRE
+    df["comment_id"] = df.apply(
+        lambda row: hashlib.md5(
+            f"{row['video_id']}_{row['author']}_{row['published']}".encode()
+        ).hexdigest(),
+        axis=1
+    )
+
     return df
 
 data = load_data()
 
+# ---------- Annotations ----------
 if os.path.exists(ANNOT_FILE):
     annotations = pd.read_csv(ANNOT_FILE)
 else:
@@ -28,7 +38,7 @@ else:
 # ---------- Email ----------
 email = st.text_input("📧 Votre email")
 
-if email == "":
+if email.strip() == "":
     st.info("Veuillez entrer votre email pour commencer.")
     st.stop()
 
@@ -63,21 +73,20 @@ st.info(row["text"])
 
 abusif = st.radio(
     "Ce commentaire est-il abusif ?",
-    ["non abusive", "abusive"],
-    key="abusif"
+    ["non abusive", "abusive"]
 )
 
 intensite = ""
 if abusif == "abusive":
     intensite = st.radio(
         "Intensité",
-        ["faible", "moyenne", "élevée"],
-        key="intensite"
+        ["faible", "moyenne", "élevée"]
     )
 
 # ---------- Sauvegarde ----------
 if st.button("💾 Enregistrer et continuer"):
-    # ❌ empêcher double annotation par le même email
+
+    # ❌ empêcher double annotation par même email
     already_done = annotations[
         (annotations["comment_id"] == row["comment_id"]) &
         (annotations["email"] == email)
@@ -102,6 +111,6 @@ if st.button("💾 Enregistrer et continuer"):
 
     annotations.to_csv(ANNOT_FILE, index=False)
 
-    # 👉 PASSAGE AUTOMATIQUE AU SUIVANT
+    # 👉 passage automatique
     st.session_state.index += 1
     st.experimental_rerun()
