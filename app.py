@@ -1,118 +1,100 @@
 import streamlit as st
 import pandas as pd
 import os
-import hashlib
 
-DATA_FILE = "data.csv"   # ton vrai fichier
+# ---------------- CONFIG ----------------
+DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
-MAX_ANNOTATIONS = 3
+MAX_ANNOT = 3
 
-st.set_page_config(page_title="Plateforme d'annotation", layout="centered")
-st.title("📝 Plateforme d'annotation de commentaires")
+st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
-# ---------- Chargement données ----------
+# ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_FILE)
-
-    # ID STABLE PAR COMMENTAIRE
-    df["comment_id"] = df.apply(
-    lambda row: hashlib.md5(
-        f"{row['video_id']}_{row['author']}_{row['published']}".encode()
-    ).hexdigest(),
-    axis=1
-)
-
-
-
+    if "comment_id" not in df.columns or "text" not in df.columns:
+        st.error("Le fichier CSV doit contenir 'comment_id' et 'text'")
+        st.stop()
     return df
 
-data = load_data()
+def load_annotations():
+    if os.path.exists(ANNOT_FILE):
+        return pd.read_csv(ANNOT_FILE)
+    return pd.DataFrame(columns=["comment_id", "email", "label", "intensite"])
 
-# ---------- Annotations ----------
-if os.path.exists(ANNOT_FILE):
-    annotations = pd.read_csv(ANNOT_FILE)
-else:
-    annotations = pd.DataFrame(
-        columns=["comment_id", "text", "abusif", "intensite", "email"]
-    )
+# ---------------- SAVE ----------------
+def save_annotation(row):
+    ann = load_annotations()
+    ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
+    ann.to_csv(ANNOT_FILE, index=False)
 
-# ---------- Email ----------
-email = st.text_input("📧 Votre email")
+# ---------------- LOGIC ----------------
+def get_available_comments(data, annotations, email):
+    # total annotations par commentaire
+    total_count = annotations.groupby("comment_id").size()
 
-if email.strip() == "":
+    def is_available(cid):
+        total = total_count.get(cid, 0)
+        already_by_user = (
+            (annotations["comment_id"] == cid) &
+            (annotations["email"] == email)
+        ).any()
+        return total < MAX_ANNOT and not already_by_user
+
+    return data[data["comment_id"].apply(is_available)]
+
+# ---------------- UI ----------------
+st.title("📝 Plateforme d'annotation")
+
+email = st.text_input("📧 Entrez votre email")
+
+if not email:
     st.info("Veuillez entrer votre email pour commencer.")
     st.stop()
 
-# ---------- Commentaires encore annotables ----------
-def get_remaining_comments():
-    if annotations.empty:
-        return data.copy()
+data = load_data()
+annotations = load_annotations()
 
-    counts = annotations.groupby("comment_id").size()
-    valid_ids = counts[counts < MAX_ANNOTATIONS].index
+available = get_available_comments(data, annotations, email)
 
-    return data[data["comment_id"].isin(valid_ids)].reset_index(drop=True)
-
-remaining = get_remaining_comments()
-
-# ---------- Session ----------
-if "index" not in st.session_state:
-    st.session_state.index = 0
-
-if remaining.empty:
-    st.success("🎉 Tous les commentaires ont atteint 3 annotations.")
+if available.empty:
+    st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-if st.session_state.index >= len(remaining):
-    st.session_state.index = 0
+# index en session
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
 
-row = remaining.iloc[st.session_state.index]
+if st.session_state.idx >= len(available):
+    st.success("🎉 Annotation terminée pour vous.")
+    st.stop()
 
-# ---------- Interface ----------
+row = available.iloc[st.session_state.idx]
+
 st.markdown("### 💬 Commentaire")
-st.info(row["text"])
+st.write(row["text"])
 
-abusif = st.radio(
+label = st.radio(
     "Ce commentaire est-il abusif ?",
-    ["non abusive", "abusive"]
+    ["abusive", "non abusive"]
 )
 
-intensite = ""
-if abusif == "abusive":
-    intensite = st.radio(
+intensite = None
+if label == "abusive":
+    intensite = st.selectbox(
         "Intensité",
         ["faible", "moyenne", "élevée"]
     )
 
-# ---------- Sauvegarde ----------
-if st.button("💾 Enregistrer et continuer"):
-
-    # ❌ empêcher double annotation par même email
-    already_done = annotations[
-        (annotations["comment_id"] == row["comment_id"]) &
-        (annotations["email"] == email)
-    ]
-
-    if not already_done.empty:
-        st.warning("⚠️ Vous avez déjà annoté ce commentaire.")
-        st.stop()
-
-    new_row = {
+if st.button("💾 Enregistrer et suivant"):
+    save_annotation({
         "comment_id": row["comment_id"],
-        "text": row["text"],
-        "abusif": abusif,
-        "intensite": intensite,
-        "email": email
-    }
+        "email": email,
+        "label": label,
+        "intensite": intensite if label == "abusive" else None
+    })
 
-    annotations = pd.concat(
-        [annotations, pd.DataFrame([new_row])],
-        ignore_index=True
-    )
-
-    annotations.to_csv(ANNOT_FILE, index=False)
-
-    # 👉 passage automatique
-    st.session_state.index += 1
+    # passage automatique
+    st.session_state.idx += 1
     st.experimental_rerun()
