@@ -104,4 +104,5 @@ if st.button("💾 Enregistrer et suivant"):
 
     # passage automatique
     st.session_state.idx += 1
-    st.experimental_rerun()
+    st.rerun()
+
