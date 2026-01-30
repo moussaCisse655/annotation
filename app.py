@@ -16,9 +16,13 @@ def load_data():
     df = pd.read_csv(DATA_FILE)
 
     # ID STABLE PAR COMMENTAIRE
-    df["comment_id"] = df["text"].astype(str).apply(
-        lambda x: hashlib.md5(x.encode("utf-8")).hexdigest()
-    )
+    df["comment_id"] = df.apply(
+    lambda row: hashlib.md5(
+        f"{row['video_id']}_{row['author']}_{row['published']}".encode()
+    ).hexdigest(),
+    axis=1
+)
+
 
 
     return df
