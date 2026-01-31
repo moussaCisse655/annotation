@@ -117,7 +117,11 @@ if email == ADMIN_EMAIL:
     if annotations.empty:
         st.info("Aucune annotation enregistrée pour le moment.")
     else:
-        # 🔥 AJOUT DU TEXTE DU COMMENTAIRE
+        # 🔧 FIX IMPORTANT : forcer le même type
+        annotations["comment_id"] = annotations["comment_id"].astype(str)
+        data_admin["comment_id"] = data_admin["comment_id"].astype(str)
+
+        # 🔥 MERGE AVEC LE TEXTE DU COMMENTAIRE
         annotations_full = annotations.merge(
             data_admin[["comment_id", "text"]],
             on="comment_id",
@@ -125,13 +129,9 @@ if email == ADMIN_EMAIL:
         )
 
         st.dataframe(
-            annotations_full[[
-                "comment_id",
-                "text",
-                "email",
-                "label",
-                "intensite"
-            ]]
+            annotations_full[
+                ["comment_id", "text", "email", "label", "intensite"]
+            ]
         )
 
         st.download_button(
