@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 # ---------------- CONFIG ----------------
-DATA_FILE = "data.csv"
+DATA_FILE = "data.csv"       # ou 14.csv
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 
@@ -18,7 +18,6 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -30,7 +29,7 @@ def load_annotations():
         return pd.read_csv(ANNOT_FILE)
     return pd.DataFrame(columns=["comment_id", "email", "label", "intensite"])
 
-# ---------------- SAVE ----------------
+
 def save_annotation(row):
     ann = load_annotations()
     ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
@@ -38,7 +37,6 @@ def save_annotation(row):
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
-    # total annotations par commentaire
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
@@ -69,15 +67,8 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# index en session
-if "idx" not in st.session_state:
-    st.session_state.idx = 0
-
-if st.session_state.idx >= len(available):
-    st.success("🎉 Annotation terminée pour vous.")
-    st.stop()
-
-row = available.iloc[st.session_state.idx]
+# 🔥 TOUJOURS PRENDRE LE PREMIER COMMENTAIRE DISPONIBLE
+row = available.iloc[0]
 
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
@@ -101,15 +92,6 @@ if st.button("💾 Enregistrer et suivant"):
         "label": label,
         "intensite": intensite if label == "abusive" else None
     })
-    st.download_button(
-    "⬇️ Télécharger toutes les annotations",
-    data=open("annotations.csv", "rb"),
-    file_name="annotations_finales.csv",
-    mime="text/csv"
-)
 
-
-    # passage automatique
-    st.session_state.idx += 1
+    # 🔁 recalcul automatique
     st.rerun()
-
