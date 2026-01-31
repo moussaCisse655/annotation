@@ -112,16 +112,32 @@ if email == ADMIN_EMAIL:
     st.subheader("🔐 Zone Admin – Annotations")
 
     annotations = load_annotations()
+    data_admin = load_data()
 
     if annotations.empty:
         st.info("Aucune annotation enregistrée pour le moment.")
     else:
-        st.dataframe(annotations)
+        # 🔥 AJOUT DU TEXTE DU COMMENTAIRE
+        annotations_full = annotations.merge(
+            data_admin[["comment_id", "text"]],
+            on="comment_id",
+            how="left"
+        )
+
+        st.dataframe(
+            annotations_full[[
+                "comment_id",
+                "text",
+                "email",
+                "label",
+                "intensite"
+            ]]
+        )
 
         st.download_button(
             label="⬇️ Télécharger toutes les annotations",
-            data=annotations.to_csv(index=False).encode("utf-8"),
-            file_name="annotations_finales.csv",
+            data=annotations_full.to_csv(index=False).encode("utf-8"),
+            file_name="annotations_finales_avec_commentaires.csv",
             mime="text/csv"
         )
 
