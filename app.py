@@ -19,11 +19,16 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
+    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
+    df["text"] = df["text"].astype(str)
+    df = df[df["text"].str.split().str.len() >= 3]
+
     # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
     return df
+
 
 
 def load_annotations():
