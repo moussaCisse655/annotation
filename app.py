@@ -39,7 +39,6 @@ def save_annotation(row):
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
-    # total annotations par commentaire
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
@@ -103,11 +102,10 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
-
-    # passage automatique
     st.session_state.idx += 1
     st.rerun()
-    # ---------------- ADMIN SECTION ----------------
+
+# ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
 if email == ADMIN_EMAIL:
@@ -127,4 +125,12 @@ if email == ADMIN_EMAIL:
             mime="text/csv"
         )
 
-
+    # 🔥 MÉTHODE 2 — SUPPRESSION DU FICHIER
+    st.markdown("### 🗑️ Réinitialisation")
+    if st.button("Supprimer toutes les annotations"):
+        if os.path.exists(ANNOT_FILE):
+            os.remove(ANNOT_FILE)
+            st.success("Annotations supprimées avec succès.")
+            st.rerun()
+        else:
+            st.info("Aucun fichier d’annotations à supprimer.")
