@@ -61,6 +61,14 @@ def get_available_comments(data, annotations, email):
 st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
+# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
+if "last_email" not in st.session_state:
+    st.session_state.last_email = email
+
+if st.session_state.last_email != email:
+    st.session_state.idx = 0
+    st.session_state.last_email = email
+
 
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
