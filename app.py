@@ -6,6 +6,7 @@ import os
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
+ADMIN_EMAIL = "cissemoussa681@gmail.com" 
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
@@ -106,4 +107,24 @@ if st.button("💾 Enregistrer et suivant"):
     # passage automatique
     st.session_state.idx += 1
     st.rerun()
+    # ---------------- ADMIN SECTION ----------------
+st.markdown("---")
+
+if email == ADMIN_EMAIL:
+    st.subheader("🔐 Zone Admin – Annotations")
+
+    annotations = load_annotations()
+
+    if annotations.empty:
+        st.info("Aucune annotation enregistrée pour le moment.")
+    else:
+        st.dataframe(annotations)
+
+        st.download_button(
+            label="⬇️ Télécharger toutes les annotations",
+            data=annotations.to_csv(index=False).encode("utf-8"),
+            file_name="annotations_finales.csv",
+            mime="text/csv"
+        )
+
 
