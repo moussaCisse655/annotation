@@ -30,12 +30,11 @@ def load_data():
     return df
 
 
+
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
         return pd.read_csv(ANNOT_FILE)
-    return pd.DataFrame(
-        columns=["comment_id", "email", "label", "type_abus", "intensite"]
-    )
+    return pd.DataFrame(columns=["comment_id", "email", "label", "intensite"])
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
@@ -93,22 +92,8 @@ label = st.radio(
     ["abusive", "non abusive"]
 )
 
-type_abus = None
 intensite = None
-
 if label == "abusive":
-    type_abus = st.multiselect(
-        "Type(s) d’abus",
-        [
-            "Insulte",
-            "Haine",
-            "Menace",
-            "Harcèlement",
-            "Discrimination",
-            "Autre"
-        ]
-    )
-
     intensite = st.selectbox(
         "Intensité",
         ["faible", "moyenne", "élevée"]
@@ -119,7 +104,6 @@ if st.button("💾 Enregistrer et suivant"):
         "comment_id": row["comment_id"],
         "email": email,
         "label": label,
-        "type_abus": ", ".join(type_abus) if label == "abusive" else None,
         "intensite": intensite if label == "abusive" else None
     })
 
@@ -138,9 +122,11 @@ if email == ADMIN_EMAIL:
     if annotations.empty:
         st.info("Aucune annotation enregistrée pour le moment.")
     else:
+        # 🔧 FIX IMPORTANT : forcer le même type
         annotations["comment_id"] = annotations["comment_id"].astype(str)
         data_admin["comment_id"] = data_admin["comment_id"].astype(str)
 
+        # 🔥 MERGE AVEC LE TEXTE DU COMMENTAIRE
         annotations_full = annotations.merge(
             data_admin[["comment_id", "text"]],
             on="comment_id",
@@ -149,7 +135,7 @@ if email == ADMIN_EMAIL:
 
         st.dataframe(
             annotations_full[
-                ["comment_id", "text", "email", "label", "type_abus", "intensite"]
+                ["comment_id", "text", "email", "label", "intensite"]
             ]
         )
 
@@ -160,6 +146,7 @@ if email == ADMIN_EMAIL:
             mime="text/csv"
         )
 
+    # 🔥 MÉTHODE 2 — SUPPRESSION DU FICHIER
     st.markdown("### 🗑️ Réinitialisation")
     if st.button("Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
