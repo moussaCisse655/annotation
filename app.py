@@ -15,18 +15,19 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 def load_data():
     df = pd.read_csv(DATA_FILE)
 
-    if "comment_id" not in df.columns or "text" not in df.columns:
-        st.error("Le CSV doit contenir 'comment_id' et 'text'")
+    if "text" not in df.columns:
+        st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    df["comment_id"] = df["comment_id"].astype(str)
+    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
-
-    # Filtrer ≥ 3 mots
     df = df[df["text"].str.split().str.len() >= 3]
 
-    return df
+    # 🔥 Création automatique d’un ID UNIQUE par commentaire
+    df = df.reset_index(drop=True)
+    df["comment_id"] = df.index.astype(str)
 
+    return df
 
 
 def load_annotations():
