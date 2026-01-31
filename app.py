@@ -6,7 +6,7 @@ import os
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
-ADMIN_EMAIL = "cissemoussa681@gmail.com"
+ADMIN_EMAIL = "cissemoussa681@gmail.com" 
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
@@ -19,11 +19,11 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Filtrer les commentaires avec au moins 3 mots
+    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
     df = df[df["text"].str.split().str.len() >= 3]
 
-    # 🔥 ID unique
+    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -61,6 +61,14 @@ def get_available_comments(data, annotations, email):
 st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
+# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
+if "last_email" not in st.session_state:
+    st.session_state.last_email = email
+
+if st.session_state.last_email != email:
+    st.session_state.idx = 0
+    st.session_state.last_email = email
+
 
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
@@ -72,14 +80,21 @@ annotations = load_annotations()
 available = get_available_comments(data, annotations, email)
 
 if available.empty:
-    st.success("🎉 Vous avez tout annoté ou les commentaires ont atteint 3 annotations.")
+    st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# 🔥 TOUJOURS le prochain commentaire non annoté
-row = available.iloc[0]
+# index en session
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
+
+if st.session_state.idx >= len(available):
+    st.success("🎉 Annotation terminée pour vous.")
+    st.stop()
+
+row = available.iloc[st.session_state.idx]
 
 st.markdown("### 💬 Commentaire")
-st.text_area("Commentaire à annoter", row["text"], height=150, disabled=True)
+st.write(row["text"])
 
 label = st.radio(
     "Ce commentaire est-il abusif ?",
@@ -116,6 +131,7 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
+    st.session_state.idx += 1
     st.rerun()
 
 # ---------------- ADMIN SECTION ----------------
@@ -128,7 +144,7 @@ if email == ADMIN_EMAIL:
     data_admin = load_data()
 
     if annotations.empty:
-        st.info("Aucune annotation enregistrée.")
+        st.info("Aucune annotation enregistrée pour le moment.")
     else:
         annotations["comment_id"] = annotations["comment_id"].astype(str)
         data_admin["comment_id"] = data_admin["comment_id"].astype(str)
@@ -146,7 +162,7 @@ if email == ADMIN_EMAIL:
         )
 
         st.download_button(
-            label="⬇️ Télécharger les annotations",
+            label="⬇️ Télécharger toutes les annotations",
             data=annotations_full.to_csv(index=False).encode("utf-8"),
             file_name="annotations_finales_avec_commentaires.csv",
             mime="text/csv"
@@ -156,7 +172,7 @@ if email == ADMIN_EMAIL:
     if st.button("Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
             os.remove(ANNOT_FILE)
-            st.success("Annotations supprimées.")
+            st.success("Annotations supprimées avec succès.")
             st.rerun()
         else:
-            st.info("Aucun fichier à supprimer.")
+            st.info("Aucun fichier d’annotations à supprimer.")
