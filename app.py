@@ -101,6 +101,13 @@ if st.button("💾 Enregistrer et suivant"):
         "label": label,
         "intensite": intensite if label == "abusive" else None
     })
+    st.download_button(
+    "⬇️ Télécharger toutes les annotations",
+    data=open("annotations.csv", "rb"),
+    file_name="annotations_finales.csv",
+    mime="text/csv"
+)
+
 
     # passage automatique
     st.session_state.idx += 1
