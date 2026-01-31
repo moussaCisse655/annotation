@@ -6,7 +6,7 @@ import os
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
-ADMIN_EMAIL = "cissemoussa681@gmail.com" 
+ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
@@ -16,10 +16,10 @@ def load_data():
     df = pd.read_csv(DATA_FILE)
 
     if "text" not in df.columns:
-        st.error("Le fichier CSV doit contenir une colonne 'text'")
+        st.error("❌ Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
+    # ID unique par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -29,7 +29,10 @@ def load_data():
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
         return pd.read_csv(ANNOT_FILE)
-    return pd.DataFrame(columns=["comment_id", "email", "label", "intensite"])
+
+    return pd.DataFrame(
+        columns=["comment_id", "text", "email", "label", "intensite"]
+    )
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
@@ -39,15 +42,16 @@ def save_annotation(row):
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
-    # total annotations par commentaire
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
         total = total_count.get(cid, 0)
+
         already_by_user = (
             (annotations["comment_id"] == cid) &
             (annotations["email"] == email)
         ).any()
+
         return total < MAX_ANNOT and not already_by_user
 
     return data[data["comment_id"].apply(is_available)]
@@ -70,15 +74,8 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# index en session
-if "idx" not in st.session_state:
-    st.session_state.idx = 0
-
-if st.session_state.idx >= len(available):
-    st.success("🎉 Annotation terminée pour vous.")
-    st.stop()
-
-row = available.iloc[st.session_state.idx]
+# Toujours prendre le premier commentaire disponible
+row = available.iloc[0]
 
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
@@ -98,16 +95,15 @@ if label == "abusive":
 if st.button("💾 Enregistrer et suivant"):
     save_annotation({
         "comment_id": row["comment_id"],
+        "text": row["text"],           # ✅ TEXTE SAUVEGARDÉ
         "email": email,
         "label": label,
         "intensite": intensite if label == "abusive" else None
     })
 
-
-    # passage automatique
-    st.session_state.idx += 1
     st.rerun()
-    # ---------------- ADMIN SECTION ----------------
+
+# ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
 if email == ADMIN_EMAIL:
@@ -118,7 +114,7 @@ if email == ADMIN_EMAIL:
     if annotations.empty:
         st.info("Aucune annotation enregistrée pour le moment.")
     else:
-        st.dataframe(annotations)
+        st.dataframe(annotations, use_container_width=True)
 
         st.download_button(
             label="⬇️ Télécharger toutes les annotations",
@@ -126,5 +122,3 @@ if email == ADMIN_EMAIL:
             file_name="annotations_finales.csv",
             mime="text/csv"
         )
-
-
