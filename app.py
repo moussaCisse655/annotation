@@ -1,39 +1,48 @@
-
 import streamlit as st
 import pandas as pd
 import os
+import hashlib
 
 # ---------------- CONFIG ----------------
-DATA_FILE = "data.csv"
+DATA_FILE = "data.csv"            # CSV UTF-8
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
-ADMIN_EMAIL = "cissemoussa681@gmail.com" 
+ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
-st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
+st.set_page_config(
+    page_title="Plateforme d’annotation",
+    layout="centered"
+)
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_FILE)
+    # Lecture UTF-8 sûre
+    df = pd.read_csv(
+        DATA_FILE,
+        encoding="utf-8",
+        on_bad_lines="skip"
+    )
 
     if "text" not in df.columns:
-        st.error("Le fichier CSV doit contenir une colonne 'text'")
+        st.error("❌ Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
-    df["text"] = df["text"].astype(str)
+    # Nettoyage texte
+    df["text"] = df["text"].astype(str).str.strip()
     df = df[df["text"].str.split().str.len() >= 3]
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
-    df = df.reset_index(drop=True)
-    df["comment_id"] = df.index.astype(str)
+    # ID stable basé sur le texte
+    df["comment_id"] = df["text"].apply(
+        lambda x: hashlib.md5(x.encode("utf-8")).hexdigest()
+    )
 
-    return df
+    return df.reset_index(drop=True)
 
-
+# ---------------- LOAD ANNOTATIONS ----------------
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE)
+        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
@@ -42,7 +51,7 @@ def load_annotations():
 def save_annotation(row):
     ann = load_annotations()
     ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
-    ann.to_csv(ANNOT_FILE, index=False)
+    ann.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
@@ -62,14 +71,14 @@ def get_available_comments(data, annotations, email):
 st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
-# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
+
+# Réinitialisation index si changement d’email
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
 if st.session_state.last_email != email:
     st.session_state.idx = 0
     st.session_state.last_email = email
-
 
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
@@ -81,10 +90,10 @@ annotations = load_annotations()
 available = get_available_comments(data, annotations, email)
 
 if available.empty:
-    st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
+    st.success("🎉 Tous les commentaires ont atteint le maximum d’annotations.")
     st.stop()
 
-# index en session
+# Index en session
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
@@ -94,6 +103,7 @@ if st.session_state.idx >= len(available):
 
 row = available.iloc[st.session_state.idx]
 
+# ---------------- ANNOTATION ----------------
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
 
