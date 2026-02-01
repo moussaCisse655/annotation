@@ -2,7 +2,15 @@ import streamlit as st
 import pandas as pd
 import os
 
+
+if not os.path.exists("data_utf8.csv"):
+    df = pd.read_csv("data.csv", encoding="latin-1")
+    df.to_csv("data_utf8.csv", index=False, encoding="utf-8")
+
+
 # ---------------- CONFIG ----------------
+DATA_FILE = "data_utf8.csv"
+
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
