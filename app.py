@@ -1,9 +1,9 @@
+
 import streamlit as st
 import pandas as pd
 import os
 
 # ---------------- CONFIG ----------------
-
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
@@ -14,7 +14,8 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_FILE, encoding="latin-1")
+    df = pd.read_csv(DATA_FILE)
+
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
@@ -32,7 +33,7 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE, encoding="utf-8", encoding_errors="replace")
+        return pd.read_csv(ANNOT_FILE)
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
@@ -41,7 +42,7 @@ def load_annotations():
 def save_annotation(row):
     ann = load_annotations()
     ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
-    ann.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
+    ann.to_csv(ANNOT_FILE, index=False)
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
