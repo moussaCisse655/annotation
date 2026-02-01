@@ -8,12 +8,13 @@ DATA_FILE = "data_utf8.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com" 
-st.write(load_data().head())
+
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
+st.write(load_data().head())
 def load_data():
     df = pd.read_csv(DATA_FILE)
 
