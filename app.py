@@ -9,12 +9,10 @@ ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com" 
 
-
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
-st.write(load_data().head())
 def load_data():
     df = pd.read_csv(DATA_FILE)
 
@@ -32,6 +30,9 @@ def load_data():
 
     return df
 
+
+# ✅ DEBUG (correctement placé)
+st.write(load_data().head())
 
 
 def load_annotations():
@@ -65,14 +66,13 @@ def get_available_comments(data, annotations, email):
 st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
-# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
+
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
 if st.session_state.last_email != email:
     st.session_state.idx = 0
     st.session_state.last_email = email
-
 
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
@@ -87,7 +87,6 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# index en session
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
