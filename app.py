@@ -2,6 +2,23 @@ import streamlit as st
 import pandas as pd
 import os
 
+
+def fix_double_encoding(text):
+    try:
+        return text.encode("latin-1").decode("utf-8")
+    except:
+        return text
+
+FILE = "TON_VRAI_FICHIER.csv"  # 👈 remplace ici
+
+df = pd.read_csv(FILE, encoding="latin-1")
+df["text"] = df["text"].astype(str).apply(fix_double_encoding)
+
+df.to_csv("data_utf8.csv", index=False, encoding="utf-8")
+
+print("✅ Conversion réussie → data_utf8.csv")
+
+
 # ---------------- CONFIG ----------------
 
 DATA_FILE = "data.csv"
