@@ -6,7 +6,7 @@ import os
 
 
 # ---------------- CONFIG ----------------
-DATA_FILE = "data_utf8.csv"
+
 
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
