@@ -4,30 +4,33 @@ import os
 
 # ---------------- CONFIG ----------------
 
-DATA_FILE = "data.csv"
+DATA_FILE = "data_utf8.csv"
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com" 
+st.write(load_data().head())
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_FILE, encoding="latin-1")
+    df = pd.read_csv(DATA_FILE)
+
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
+
+    # garder uniquement les commentaires avec au moins 3 mots
     df = df[df["text"].str.split().str.len() >= 3]
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
     return df
+
 
 
 def load_annotations():
