@@ -2,11 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-
-
-
 # ---------------- CONFIG ----------------
-
 
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
