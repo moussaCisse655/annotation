@@ -13,7 +13,7 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-   df = pd.read_csv(DATA_FILE, encoding="latin-1")
+      df = pd.read_csv(DATA_FILE, encoding="latin-1")
 
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
