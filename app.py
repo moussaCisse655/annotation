@@ -13,7 +13,7 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_FILE, encoding="utf-8", errors="replace")
+    df = pd.read_csv(DATA_FILE, encoding="utf-8", encoding_errors="replace")
 
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
@@ -32,7 +32,7 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE, encoding="utf-8", errors="replace")
+        return pd.read_csv(ANNOT_FILE, encoding="utf-8", encoding_errors="replace")
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
