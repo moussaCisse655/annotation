@@ -10,20 +10,35 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
+# ---------------- SESSION STATE INIT ----------------
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
+
+if "last_email" not in st.session_state:
+    st.session_state.last_email = ""
+
+if "label_key" not in st.session_state:
+    st.session_state.label_key = 0
+
+if "type_key" not in st.session_state:
+    st.session_state.type_key = 0
+
+if "intensite_key" not in st.session_state:
+    st.session_state.intensite_key = 0
+
+
 # ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv(
-        DATA_FILE,
-        encoding="utf-8",
-        engine="python"
-    )
+    df = pd.read_csv(DATA_FILE, encoding="utf-8", engine="python")
 
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
     df["text"] = df["text"].astype(str)
+
+    # garder uniquement les commentaires avec au moins 3 mots
     df = df[df["text"].str.split().str.len() >= 3]
 
     df = df.reset_index(drop=True)
@@ -34,26 +49,26 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(
-            ANNOT_FILE,
-            encoding="utf-8"
-        )
+        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
+
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
     ann = load_annotations()
     ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
-    ann.to_csv(
-        ANNOT_FILE,
-        index=False,
-        encoding="utf-8"
-    )
+    ann.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
+
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
+
+    # IMPORTANT → forcer le type string
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
@@ -66,14 +81,13 @@ def get_available_comments(data, annotations, email):
 
     return data[data["comment_id"].apply(is_available)]
 
+
 # ---------------- UI ----------------
 st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
-if "last_email" not in st.session_state:
-    st.session_state.last_email = email
-
+# reset index si nouvel email
 if st.session_state.last_email != email:
     st.session_state.idx = 0
     st.session_state.last_email = email
@@ -91,9 +105,6 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-if "idx" not in st.session_state:
-    st.session_state.idx = 0
-
 if st.session_state.idx >= len(available):
     st.success("🎉 Annotation terminée pour vous.")
     st.stop()
@@ -103,11 +114,13 @@ row = available.iloc[st.session_state.idx]
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
 
-# 🔥 KEY dynamique basée sur idx → réinitialise automatiquement
+
+# ---------------- CHAMPS AVEC CLÉS DYNAMIQUES ----------------
+
 label = st.radio(
     "Ce commentaire est-il abusif ?",
     ["abusive", "non abusive"],
-    key=f"label_{st.session_state.idx}"
+    key=f"label_{st.session_state.label_key}"
 )
 
 type_abus = None
@@ -124,16 +137,19 @@ if label == "abusive":
             "Discrimination",
             "Autre"
         ],
-        key=f"type_{st.session_state.idx}"
+        key=f"type_{st.session_state.type_key}"
     )
 
     intensite = st.selectbox(
         "Intensité",
         ["faible", "moyenne", "élevée"],
-        key=f"intensite_{st.session_state.idx}"
+        key=f"intensite_{st.session_state.intensite_key}"
     )
 
+
+# ---------------- ENREGISTRER ----------------
 if st.button("💾 Enregistrer et suivant"):
+
     save_annotation({
         "comment_id": row["comment_id"],
         "email": email,
@@ -142,8 +158,16 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
+    # 👉 Avancer
     st.session_state.idx += 1
+
+    # 👉 CHANGER LES CLÉS → force Streamlit à recréer les champs
+    st.session_state.label_key += 1
+    st.session_state.type_key += 1
+    st.session_state.intensite_key += 1
+
     st.rerun()
+
 
 # ---------------- ADMIN SECTION ----------------
 st.markdown("---")
@@ -180,6 +204,7 @@ if email == ADMIN_EMAIL:
         )
 
     st.markdown("### 🗑️ Réinitialisation")
+
     if st.button("Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
             os.remove(ANNOT_FILE)
