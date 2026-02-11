@@ -23,11 +23,9 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
     df = df[df["text"].str.split().str.len() >= 3]
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -73,7 +71,6 @@ st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
-# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
@@ -94,7 +91,6 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# index en session
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
@@ -107,9 +103,11 @@ row = available.iloc[st.session_state.idx]
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
 
+# 🔥 KEY dynamique basée sur idx → réinitialise automatiquement
 label = st.radio(
     "Ce commentaire est-il abusif ?",
-    ["abusive", "non abusive"]
+    ["abusive", "non abusive"],
+    key=f"label_{st.session_state.idx}"
 )
 
 type_abus = None
@@ -125,12 +123,14 @@ if label == "abusive":
             "Harcèlement",
             "Discrimination",
             "Autre"
-        ]
+        ],
+        key=f"type_{st.session_state.idx}"
     )
 
     intensite = st.selectbox(
         "Intensité",
-        ["faible", "moyenne", "élevée"]
+        ["faible", "moyenne", "élevée"],
+        key=f"intensite_{st.session_state.idx}"
     )
 
 if st.button("💾 Enregistrer et suivant"):
