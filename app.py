@@ -23,9 +23,11 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
+    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
     df = df[df["text"].str.split().str.len() >= 3]
 
+    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -54,14 +56,20 @@ def save_annotation(row):
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
+
+    # ✅ AJUSTEMENT IMPORTANT (ne change rien d’autre)
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
-        total = total_count.get(cid, 0)
+        total = total_count.get(str(cid), 0)
         already_by_user = (
-            (annotations["comment_id"] == cid) &
+            (annotations["comment_id"] == str(cid)) &
             (annotations["email"] == email)
         ).any()
+
         return total < MAX_ANNOT and not already_by_user
 
     return data[data["comment_id"].apply(is_available)]
@@ -71,6 +79,7 @@ st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
+# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
@@ -91,6 +100,7 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
+# index en session
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
@@ -103,11 +113,10 @@ row = available.iloc[st.session_state.idx]
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
 
-# 🔥 KEY dynamique basée sur idx → réinitialise automatiquement
 label = st.radio(
     "Ce commentaire est-il abusif ?",
     ["abusive", "non abusive"],
-    key=f"label_{st.session_state.idx}"
+    key="label_radio"
 )
 
 type_abus = None
@@ -124,13 +133,13 @@ if label == "abusive":
             "Discrimination",
             "Autre"
         ],
-        key=f"type_{st.session_state.idx}"
+        key="type_abus_multi"
     )
 
     intensite = st.selectbox(
         "Intensité",
         ["faible", "moyenne", "élevée"],
-        key=f"intensite_{st.session_state.idx}"
+        key="intensite_select"
     )
 
 if st.button("💾 Enregistrer et suivant"):
@@ -141,6 +150,11 @@ if st.button("💾 Enregistrer et suivant"):
         "type_abus": ", ".join(type_abus) if label == "abusive" else None,
         "intensite": intensite if label == "abusive" else None
     })
+
+    # 🔥 reset des champs
+    st.session_state.label_radio = "abusive"
+    st.session_state.type_abus_multi = []
+    st.session_state.intensite_select = "faible"
 
     st.session_state.idx += 1
     st.rerun()
