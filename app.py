@@ -36,10 +36,13 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(
+        df = pd.read_csv(
             ANNOT_FILE,
             encoding="utf-8"
         )
+        df["comment_id"] = df["comment_id"].astype(str)
+        return df
+
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
@@ -57,16 +60,16 @@ def save_annotation(row):
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
 
-    # ✅ AJUSTEMENT IMPORTANT (ne change rien d’autre)
+    # 🔥 IMPORTANT : garantir type string
     annotations["comment_id"] = annotations["comment_id"].astype(str)
     data["comment_id"] = data["comment_id"].astype(str)
 
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
-        total = total_count.get(str(cid), 0)
+        total = total_count.get(cid, 0)
         already_by_user = (
-            (annotations["comment_id"] == str(cid)) &
+            (annotations["comment_id"] == cid) &
             (annotations["email"] == email)
         ).any()
 
@@ -79,7 +82,7 @@ st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
-# 🔥 Réinitialiser l'index si nouvel email ou nouvelle session
+# 🔥 Réinitialiser l'index si nouvel email
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
@@ -104,9 +107,9 @@ if available.empty:
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
+# 🔥 Si dépassement, recalculer proprement
 if st.session_state.idx >= len(available):
-    st.success("🎉 Annotation terminée pour vous.")
-    st.stop()
+    st.session_state.idx = 0
 
 row = available.iloc[st.session_state.idx]
 
@@ -115,8 +118,7 @@ st.write(row["text"])
 
 label = st.radio(
     "Ce commentaire est-il abusif ?",
-    ["abusive", "non abusive"],
-    key="label_radio"
+    ["abusive", "non abusive"]
 )
 
 type_abus = None
@@ -132,17 +134,16 @@ if label == "abusive":
             "Harcèlement",
             "Discrimination",
             "Autre"
-        ],
-        key="type_abus_multi"
+        ]
     )
 
     intensite = st.selectbox(
         "Intensité",
-        ["faible", "moyenne", "élevée"],
-        key="intensite_select"
+        ["faible", "moyenne", "élevée"]
     )
 
 if st.button("💾 Enregistrer et suivant"):
+
     save_annotation({
         "comment_id": row["comment_id"],
         "email": email,
@@ -151,12 +152,10 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
-    # 🔥 reset des champs
-    st.session_state.label_radio = "abusive"
-    st.session_state.type_abus_multi = []
-    st.session_state.intensite_select = "faible"
-
+    # 🔥 Avancer
     st.session_state.idx += 1
+
+    # 🔥 Recalcul automatique après sauvegarde
     st.rerun()
 
 # ---------------- ADMIN SECTION ----------------
