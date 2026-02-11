@@ -23,11 +23,9 @@ def load_data():
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
 
-    # 🔥 Garder uniquement les commentaires avec au moins 3 mots
     df["text"] = df["text"].astype(str)
     df = df[df["text"].str.split().str.len() >= 3]
 
-    # 🔥 Création automatique d’un ID UNIQUE par commentaire
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -36,13 +34,10 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        df = pd.read_csv(
+        return pd.read_csv(
             ANNOT_FILE,
             encoding="utf-8"
         )
-        df["comment_id"] = df["comment_id"].astype(str)
-        return df
-
     return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite"]
     )
@@ -59,11 +54,6 @@ def save_annotation(row):
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
-
-    # 🔥 IMPORTANT : garantir type string
-    annotations["comment_id"] = annotations["comment_id"].astype(str)
-    data["comment_id"] = data["comment_id"].astype(str)
-
     total_count = annotations.groupby("comment_id").size()
 
     def is_available(cid):
@@ -72,7 +62,6 @@ def get_available_comments(data, annotations, email):
             (annotations["comment_id"] == cid) &
             (annotations["email"] == email)
         ).any()
-
         return total < MAX_ANNOT and not already_by_user
 
     return data[data["comment_id"].apply(is_available)]
@@ -82,7 +71,6 @@ st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
-# 🔥 Réinitialiser l'index si nouvel email
 if "last_email" not in st.session_state:
     st.session_state.last_email = email
 
@@ -103,22 +91,23 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     st.stop()
 
-# index en session
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
-# 🔥 Si dépassement, recalculer proprement
 if st.session_state.idx >= len(available):
-    st.session_state.idx = 0
+    st.success("🎉 Annotation terminée pour vous.")
+    st.stop()
 
 row = available.iloc[st.session_state.idx]
 
 st.markdown("### 💬 Commentaire")
 st.write(row["text"])
 
+# 🔥 KEY dynamique basée sur idx → réinitialise automatiquement
 label = st.radio(
     "Ce commentaire est-il abusif ?",
-    ["abusive", "non abusive"]
+    ["abusive", "non abusive"],
+    key=f"label_{st.session_state.idx}"
 )
 
 type_abus = None
@@ -134,16 +123,17 @@ if label == "abusive":
             "Harcèlement",
             "Discrimination",
             "Autre"
-        ]
+        ],
+        key=f"type_{st.session_state.idx}"
     )
 
     intensite = st.selectbox(
         "Intensité",
-        ["faible", "moyenne", "élevée"]
+        ["faible", "moyenne", "élevée"],
+        key=f"intensite_{st.session_state.idx}"
     )
 
 if st.button("💾 Enregistrer et suivant"):
-
     save_annotation({
         "comment_id": row["comment_id"],
         "email": email,
@@ -152,10 +142,7 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
-    # 🔥 Avancer
     st.session_state.idx += 1
-
-    # 🔥 Recalcul automatique après sauvegarde
     st.rerun()
 
 # ---------------- ADMIN SECTION ----------------
