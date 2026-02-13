@@ -111,7 +111,10 @@ if available.empty:
 
 if st.session_state.idx >= len(available):
     st.success("🎉 Annotation terminée pour vous.")
-    st.stop()
+    
+    if email != ADMIN_EMAIL:
+        st.stop()
+
 
 row = available.iloc[st.session_state.idx]
 
