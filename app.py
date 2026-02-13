@@ -158,8 +158,9 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
-    # 👉 Avancer
-    st.session_state.idx += 1
+    # 👉 Ajustement sécurisé pour éviter les sauts
+    if st.session_state.idx >= len(available) - 1:
+        st.session_state.idx = 0
 
     # 👉 CHANGER LES CLÉS → force Streamlit à recréer les champs
     st.session_state.label_key += 1
@@ -167,6 +168,7 @@ if st.button("💾 Enregistrer et suivant"):
     st.session_state.intensite_key += 1
 
     st.rerun()
+
 
 
 # ---------------- ADMIN SECTION ----------------
