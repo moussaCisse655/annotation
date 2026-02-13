@@ -104,22 +104,25 @@ available = get_available_comments(data, annotations, email)
 if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     
-    # 👉 On bloque seulement les utilisateurs normaux
     if email != ADMIN_EMAIL:
         st.stop()
+    else:
+        row = None
+else:
+    if st.session_state.idx >= len(available):
+        if email != ADMIN_EMAIL:
+            st.success("🎉 Annotation terminée pour vous.")
+            st.stop()
+        else:
+            row = None
+    else:
+        row = available.iloc[st.session_state.idx]
 
 
-if st.session_state.idx >= len(available):
-    st.success("🎉 Annotation terminée pour vous.")
-    
-    if email != ADMIN_EMAIL:
-        st.stop()
+if row is not None:
+    st.markdown("### 💬 Commentaire")
+    st.write(row["text"])
 
-
-row = available.iloc[st.session_state.idx]
-
-st.markdown("### 💬 Commentaire")
-st.write(row["text"])
 
 
 # ---------------- CHAMPS AVEC CLÉS DYNAMIQUES ----------------
