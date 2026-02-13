@@ -103,7 +103,11 @@ available = get_available_comments(data, annotations, email)
 
 if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
-    st.stop()
+    
+    # 👉 On bloque seulement les utilisateurs normaux
+    if email != ADMIN_EMAIL:
+        st.stop()
+
 
 if st.session_state.idx >= len(available):
     st.success("🎉 Annotation terminée pour vous.")
