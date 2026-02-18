@@ -235,8 +235,8 @@ if email == ADMIN_EMAIL:
             mime="text/csv"
         )
 
-    if st.button("Supprimer toutes les annotations"):
-    if os.path.exists(ANNOT_FILE):
+ if st.button("Supprimer toutes les annotations"):
+  if os.path.exists(ANNOT_FILE):
         os.remove(ANNOT_FILE)
 
         # 🔄 Reset session proprement
