@@ -235,12 +235,18 @@ if email == ADMIN_EMAIL:
             mime="text/csv"
         )
 
-    st.markdown("### 🗑️ Réinitialisation")
-
     if st.button("Supprimer toutes les annotations"):
-        if os.path.exists(ANNOT_FILE):
-            os.remove(ANNOT_FILE)
-            st.success("Annotations supprimées avec succès.")
-            st.rerun()
+    if os.path.exists(ANNOT_FILE):
+        os.remove(ANNOT_FILE)
+
+        # 🔄 Reset session proprement
+        st.session_state.idx = 0
+        st.session_state.label_key = 0
+        st.session_state.type_key = 0
+        st.session_state.intensite_key = 0
+
+        st.success("Annotations supprimées avec succès. Nouveau cycle démarré ✅")
+        st.rerun()
+
         else:
             st.info("Aucun fichier d’annotations à supprimer.")
