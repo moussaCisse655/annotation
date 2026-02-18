@@ -115,35 +115,6 @@ if row is not None:
 
     comment_id = row["comment_id"]
 
-    comment_annotations = annotations[
-        annotations["comment_id"].astype(str) == str(comment_id)
-    ]
-
-    total_annotations = len(comment_annotations)
-    abusive_count = len(comment_annotations[
-        comment_annotations["label"] == "abusive"
-    ])
-    non_abusive_count = len(comment_annotations[
-        comment_annotations["label"] == "non abusive"
-    ])
-
-    user_annotation = comment_annotations[
-        comment_annotations["email"] == email
-    ]
-
-    user_choice = (
-        user_annotation.iloc[0]["label"]
-        if not user_annotation.empty
-        else "Pas encore annoté"
-    )
-
-    st.markdown("### 📊 Statistiques du commentaire")
-    st.write(f"🧮 Total annotations : {total_annotations}")
-    st.write(f"🚨 Abusive : {abusive_count}")
-    st.write(f"✅ Non abusive : {non_abusive_count}")
-    st.write(f"👤 Votre choix : {user_choice}")
-
-    # ---------------- CHAMPS ----------------
     label = st.radio(
         "Ce commentaire est-il abusif ?",
         ["abusive", "non abusive"],
@@ -166,7 +137,6 @@ if row is not None:
             key=f"intensite_{st.session_state.intensite_key}"
         )
 
-    # ---------------- SAVE ----------------
     if st.button("💾 Enregistrer et suivant"):
 
         save_annotation({
@@ -246,7 +216,6 @@ if email == ADMIN_EMAIL:
             mime="text/csv"
         )
 
-    # ---------------- DELETE BUTTON ----------------
     if st.button("🗑 Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
             os.remove(ANNOT_FILE)
