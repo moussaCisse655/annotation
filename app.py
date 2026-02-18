@@ -202,7 +202,7 @@ if email == ADMIN_EMAIL:
                 "Annotation1": ann1,
                 "Annotation2": ann2,
                 "Annotation3": ann3,
-                "Tweet": tweet_text
+                "Commentaire": tweet_text
             })
 
         summary_df = pd.DataFrame(summary_list)
@@ -210,9 +210,9 @@ if email == ADMIN_EMAIL:
         st.dataframe(summary_df)
 
         st.download_button(
-            label="⬇️ Télécharger AnnDoom.csv",
+            label="⬇️ Télécharger Annotation.csv",
             data=summary_df.to_csv(index=False, encoding="utf-8"),
-            file_name="AnnDoom_format.csv",
+            file_name="Annotation_format.csv",
             mime="text/csv"
         )
 
