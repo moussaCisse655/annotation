@@ -150,7 +150,7 @@ if label == "abusive":
         key=f"type_{st.session_state.type_key}"
     )
 
-    intensite = st.selectbox(
+    intensite = st.multiselect(
         "Intensité",
         ["faible", "moyenne", "élevée"],
         key=f"intensite_{st.session_state.intensite_key}"
