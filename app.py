@@ -117,11 +117,35 @@ else:
             row = None
     else:
         row = available.iloc[st.session_state.idx]
+        comment_id = row["id"]
+
+# Filtrer les annotations de ce commentaire
+comment_annotations = annotations[annotations["id"] == comment_id]
+
+total_annotations = len(comment_annotations)
+abusif_count = len(comment_annotations[comment_annotations["label"] == "abusif"])
+non_abusif_count = len(comment_annotations[comment_annotations["label"] == "non_abusif"])
+
+# Vérifier ce que l'utilisateur courant a déjà mis
+user_annotation = comment_annotations[comment_annotations["email"] == email]
+
+if not user_annotation.empty:
+    user_choice = user_annotation.iloc[0]["label"]
+else:
+    user_choice = "Pas encore annoté"
+
 
 
 if row is not None:
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
+    st.markdown("### 📊 Statistiques du commentaire")
+
+st.write(f"🧮 Nombre total d'annotations : {total_annotations}")
+st.write(f"🚨 Abusif : {abusif_count}")
+st.write(f"✅ Non abusif : {non_abusif_count}")
+st.write(f"👤 Votre choix : {user_choice}")
+
 
 
 
