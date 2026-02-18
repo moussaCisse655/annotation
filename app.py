@@ -37,10 +37,7 @@ def load_data():
         st.stop()
 
     df["text"] = df["text"].astype(str)
-
-    # garder uniquement les commentaires avec au moins 3 mots
     df = df[df["text"].str.split().str.len() >= 3]
-
     df = df.reset_index(drop=True)
     df["comment_id"] = df.index.astype(str)
 
@@ -65,7 +62,6 @@ def save_annotation(row):
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
 
-    # IMPORTANT → forcer le type string
     annotations["comment_id"] = annotations["comment_id"].astype(str)
     data["comment_id"] = data["comment_id"].astype(str)
 
@@ -87,7 +83,6 @@ st.title("📝 Plateforme d'annotation")
 
 email = st.text_input("📧 Entrez votre email")
 
-# reset index si nouvel email
 if st.session_state.last_email != email:
     st.session_state.idx = 0
     st.session_state.last_email = email
@@ -117,40 +112,44 @@ else:
             row = None
     else:
         row = available.iloc[st.session_state.idx]
-        comment_id = row["id"]
-
-# Filtrer les annotations de ce commentaire
-comment_annotations = annotations[annotations["id"] == comment_id]
-
-total_annotations = len(comment_annotations)
-abusif_count = len(comment_annotations[comment_annotations["label"] == "abusif"])
-non_abusif_count = len(comment_annotations[comment_annotations["label"] == "non_abusif"])
-
-# Vérifier ce que l'utilisateur courant a déjà mis
-user_annotation = comment_annotations[comment_annotations["email"] == email]
-
-if not user_annotation.empty:
-    user_choice = user_annotation.iloc[0]["label"]
-else:
-    user_choice = "Pas encore annoté"
-
 
 
 if row is not None:
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
+
+    # ---------------- AJOUT STATISTIQUES ----------------
+    comment_id = row["comment_id"]
+
+    comment_annotations = annotations[
+        annotations["comment_id"].astype(str) == str(comment_id)
+    ]
+
+    total_annotations = len(comment_annotations)
+    abusive_count = len(comment_annotations[
+        comment_annotations["label"] == "abusive"
+    ])
+    non_abusive_count = len(comment_annotations[
+        comment_annotations["label"] == "non abusive"
+    ])
+
+    user_annotation = comment_annotations[
+        comment_annotations["email"] == email
+    ]
+
+    if not user_annotation.empty:
+        user_choice = user_annotation.iloc[0]["label"]
+    else:
+        user_choice = "Pas encore annoté"
+
     st.markdown("### 📊 Statistiques du commentaire")
-
-st.write(f"🧮 Nombre total d'annotations : {total_annotations}")
-st.write(f"🚨 Abusif : {abusif_count}")
-st.write(f"✅ Non abusif : {non_abusif_count}")
-st.write(f"👤 Votre choix : {user_choice}")
-
+    st.write(f"🧮 Total annotations : {total_annotations}")
+    st.write(f"🚨 Abusive : {abusive_count}")
+    st.write(f"✅ Non abusive : {non_abusive_count}")
+    st.write(f"👤 Votre choix : {user_choice}")
 
 
-
-# ---------------- CHAMPS AVEC CLÉS DYNAMIQUES ----------------
-
+# ---------------- CHAMPS ----------------
 label = st.radio(
     "Ce commentaire est-il abusif ?",
     ["abusive", "non abusive"],
@@ -192,17 +191,14 @@ if st.button("💾 Enregistrer et suivant"):
         "intensite": intensite if label == "abusive" else None
     })
 
-    # 👉 Ajustement sécurisé pour éviter les sauts
     if st.session_state.idx >= len(available) - 1:
         st.session_state.idx = 0
 
-    # 👉 CHANGER LES CLÉS → force Streamlit à recréer les champs
     st.session_state.label_key += 1
     st.session_state.type_key += 1
     st.session_state.intensite_key += 1
 
     st.rerun()
-
 
 
 # ---------------- ADMIN SECTION ----------------
