@@ -221,15 +221,19 @@ if email == ADMIN_EMAIL:
             final_class = 1 if count_a > count_na else 0
 
             labels = group["label"].tolist()
-            intensites = group["intensite"].fillna("").tolist()
+            
 
             ann1 = labels[0] if len(labels) > 0 else ""
             ann2 = labels[1] if len(labels) > 1 else ""
             ann3 = labels[2] if len(labels) > 2 else ""
 
-            int1 = intensites[0] if len(intensites) > 0 else ""
-            int2 = intensites[1] if len(intensites) > 1 else ""
-            int3 = intensites[2] if len(intensites) > 2 else ""
+            intensites = group["intensite"].dropna()
+
+            if not intensites.empty:
+                intensite_finale = intensites.value_counts().idxmax()
+            else:
+                intensite_finale = ""
+
 
             langues = group["langue"].dropna()
 
@@ -248,9 +252,8 @@ if email == ADMIN_EMAIL:
                 "Annotation1": ann1,
                 "Annotation2": ann2,
                 "Annotation3": ann3,
-                "Intensite1": int1,
-                "Intensite2": int2,
-                "Intensite3": int3,
+                "Intensite": intensite_finale,
+
                 "Langue": langue_finale,
 
 
