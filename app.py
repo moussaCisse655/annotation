@@ -302,7 +302,7 @@ if email == ADMIN_EMAIL:
             data=summary_df.to_csv(index=False, encoding="utf-8"),
             file_name="Annotation_format.csv",
             mime="text/csv"
-        )
+        ) 
 
     if st.button("🗑 Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
