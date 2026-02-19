@@ -124,11 +124,12 @@ if row is not None:
 
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
-    langue = st.radio(
+    langue = st.multiselect(
     "Langue du commentaire",
-    ["Français", "Wolof", "Français-Wolof"],
+    ["Français", "Wolof"],
     key=f"langue_{st.session_state.langue_key}"
 )
+
 
 
     comment_id = row["comment_id"]
@@ -157,14 +158,15 @@ if row is not None:
 
     if st.button("💾 Enregistrer et suivant"):
 
-        save_annotation({
+       save_annotation({
             "comment_id": comment_id,
             "email": email,
             "label": label,
             "type_abus": ", ".join(type_abus) if label == "abusive" else None,
             "intensite": ", ".join(intensite) if label == "abusive" else None,
-            "langue": langue
+            "langue": ", ".join(langue) if langue else None
         })
+
 
     
         # NE PAS incrementer idx
