@@ -25,6 +25,9 @@ if "type_key" not in st.session_state:
 
 if "intensite_key" not in st.session_state:
     st.session_state.intensite_key = 0
+    
+if "langue_key" not in st.session_state:
+    st.session_state.langue_key = 0
 
 
 # ---------------- LOAD DATA ----------------
@@ -48,8 +51,9 @@ def load_annotations():
     if os.path.exists(ANNOT_FILE):
         return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(
-        columns=["comment_id", "email", "label", "type_abus", "intensite"]
-    )
+    columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
+)
+
 
 
 # ---------------- SAVE ----------------
@@ -112,6 +116,12 @@ if row is not None:
 
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
+    langue = st.radio(
+    "Langue du commentaire",
+    ["Français", "Wolof", "Français-Wolof"],
+    key=f"langue_{st.session_state.langue_key}"
+)
+
 
     comment_id = row["comment_id"]
 
@@ -144,8 +154,10 @@ if row is not None:
             "email": email,
             "label": label,
             "type_abus": ", ".join(type_abus) if label == "abusive" else None,
-            "intensite": ", ".join(intensite) if label == "abusive" else None
+            "intensite": ", ".join(intensite) if label == "abusive" else None,
+            "langue": langue
         })
+
     
         # NE PAS incrementer idx
         # st.session_state.idx += 1   ❌ SUPPRIMER CETTE LIGNE
@@ -153,6 +165,8 @@ if row is not None:
         st.session_state.label_key += 1
         st.session_state.type_key += 1
         st.session_state.intensite_key += 1
+        st.session_state.langue_key += 1
+
     
         st.rerun()
 
@@ -202,6 +216,13 @@ if email == ADMIN_EMAIL:
             int2 = intensites[1] if len(intensites) > 1 else ""
             int3 = intensites[2] if len(intensites) > 2 else ""
 
+            langues = group["langue"].fillna("").tolist()
+
+            lang1 = langues[0] if len(langues) > 0 else ""
+            lang2 = langues[1] if len(langues) > 1 else ""
+            lang3 = langues[2] if len(langues) > 2 else ""
+
+
             summary_list.append({
                 "Annotator": annot_count,
                 "CountNA": count_na,
@@ -213,6 +234,10 @@ if email == ADMIN_EMAIL:
                 "Intensite1": int1,
                 "Intensite2": int2,
                 "Intensite3": int3,
+                "Langue1": lang1,
+                "Langue2": lang2,
+                "Langue3": lang3,
+
                 "Commentaire": tweet_text
             })
 
