@@ -49,10 +49,18 @@ def load_data():
 
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
+        df = pd.read_csv(ANNOT_FILE, encoding="utf-8")
+
+        # 🔥 Ajouter la colonne langue si elle n'existe pas
+        if "langue" not in df.columns:
+            df["langue"] = None
+
+        return df
+
     return pd.DataFrame(
-    columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
-)
+        columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
+    )
+
 
 
 
