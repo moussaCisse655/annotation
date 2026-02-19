@@ -10,7 +10,7 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
-st.title("📝 Plateforme d'annotation")
+
 
 st.markdown("## 📘 Guide d’annotation")
 st.info("Lisez attentivement les instructions avant de commencer.")
