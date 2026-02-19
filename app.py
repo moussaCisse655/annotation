@@ -158,27 +158,25 @@ if row is not None:
 
     if st.button("💾 Enregistrer et suivant"):
 
-       save_annotation({
-            "comment_id": comment_id,
-            "email": email,
-            "label": label,
-            "type_abus": ", ".join(type_abus) if label == "abusive" else None,
-            "intensite": ", ".join(intensite) if label == "abusive" else None,
-            "langue": ", ".join(langue) if langue else None
-        })
+    save_annotation({
+        "comment_id": comment_id,
+        "email": email,
+        "label": label,
+        "type_abus": ", ".join(type_abus) if label == "abusive" else None,
+        "intensite": ", ".join(intensite) if label == "abusive" else None,
+        "langue": ", ".join(langue) if langue else None
+    })
 
+    # NE PAS incrementer idx
+    # st.session_state.idx += 1
 
-    
-        # NE PAS incrementer idx
-        # st.session_state.idx += 1   ❌ SUPPRIMER CETTE LIGNE
-    
-        st.session_state.label_key += 1
-        st.session_state.type_key += 1
-        st.session_state.intensite_key += 1
-        st.session_state.langue_key += 1
+    st.session_state.label_key += 1
+    st.session_state.type_key += 1
+    st.session_state.intensite_key += 1
+    st.session_state.langue_key += 1
 
-    
-        st.rerun()
+    st.rerun()
+
 
 
 
