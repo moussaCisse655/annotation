@@ -167,11 +167,12 @@ if row is not None:
 
     comment_id = row["comment_id"]
 
-    label = st.radio(
+    label = st.selectbox(
         "Ce commentaire est-il abusif ?",
-        ["abusive", "non abusive"],
+        ["Choisir une option", "abusive", "non abusive"],
         key=f"label_{st.session_state.label_key}"
     )
+
 
     type_abus = None
     intensite = None
@@ -190,6 +191,9 @@ if row is not None:
         )
 
     if st.button("💾 Enregistrer et suivant"):
+       if label == "Choisir une option":
+            st.warning("Veuillez choisir si le commentaire est abusive ou non abusive.")
+            st.stop()
 
         # Vérification cohérence langue
         if "Français-Wolof" in langue and len(langue) > 1:
