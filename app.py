@@ -257,7 +257,7 @@ if email == ADMIN_EMAIL:
                 "Langue": langue_finale,
 
 
-                "Commentaire": tweet_text
+                "Commentaires": commentaire_text
             })
 
         summary_df = pd.DataFrame(summary_list)
