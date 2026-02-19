@@ -231,11 +231,13 @@ if email == ADMIN_EMAIL:
             int2 = intensites[1] if len(intensites) > 1 else ""
             int3 = intensites[2] if len(intensites) > 2 else ""
 
-            langues = group["langue"].fillna("").tolist()
+            langues = group["langue"].dropna()
 
-            lang1 = langues[0] if len(langues) > 0 else ""
-            lang2 = langues[1] if len(langues) > 1 else ""
-            lang3 = langues[2] if len(langues) > 2 else ""
+            if not langues.empty:
+                langue_finale = langues.value_counts().idxmax()
+            else:
+                langue_finale = ""
+
 
 
             summary_list.append({
@@ -249,9 +251,8 @@ if email == ADMIN_EMAIL:
                 "Intensite1": int1,
                 "Intensite2": int2,
                 "Intensite3": int3,
-                "Langue1": lang1,
-                "Langue2": lang2,
-                "Langue3": lang3,
+                "Langue": langue_finale,
+
 
                 "Commentaire": tweet_text
             })
