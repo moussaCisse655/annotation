@@ -36,7 +36,7 @@ Cette plateforme sert à annoter des commentaires pour un projet de recherche en
 ⚠ Basez-vous uniquement sur le texte affiché.
 """)
 
-guide_ok = st.checkbox("✅ J’ai lu et compris le guide d’annotation")
+guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
 
 
