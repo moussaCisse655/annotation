@@ -158,30 +158,30 @@ if row is not None:
 
     if st.button("💾 Enregistrer et suivant"):
 
-    # Vérification cohérence langue
-    if "Français-Wolof" in langue and len(langue) > 1:
-        st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
-        st.stop()
-
-    if not langue:
-        st.warning("Veuillez sélectionner au moins une langue.")
-        st.stop()
-
-    save_annotation({
-        "comment_id": comment_id,
-        "email": email,
-        "label": label,
-        "type_abus": ", ".join(type_abus) if label == "abusive" else None,
-        "intensite": ", ".join(intensite) if label == "abusive" else None,
-        "langue": ", ".join(langue)
-    })
-
-    st.session_state.label_key += 1
-    st.session_state.type_key += 1
-    st.session_state.intensite_key += 1
-    st.session_state.langue_key += 1
-
-    st.rerun()
+        # Vérification cohérence langue
+        if "Français-Wolof" in langue and len(langue) > 1:
+            st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
+            st.stop()
+    
+        if not langue:
+            st.warning("Veuillez sélectionner au moins une langue.")
+            st.stop()
+    
+        save_annotation({
+            "comment_id": comment_id,
+            "email": email,
+            "label": label,
+            "type_abus": ", ".join(type_abus) if label == "abusive" else None,
+            "intensite": ", ".join(intensite) if label == "abusive" else None,
+            "langue": ", ".join(langue)
+        })
+    
+        st.session_state.label_key += 1
+        st.session_state.type_key += 1
+        st.session_state.intensite_key += 1
+        st.session_state.langue_key += 1
+    
+        st.rerun()
 
 
 
