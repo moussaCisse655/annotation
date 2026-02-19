@@ -225,7 +225,7 @@ st.markdown("---")
 
 if email == ADMIN_EMAIL:
 
-    st.subheader("🔐 Zone Admin – Résumé AnnDoom")
+    st.subheader("🔐 Zone Admin – Résumé Annotation")
 
     annotations = load_annotations()
     data_admin = load_data()
