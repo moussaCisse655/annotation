@@ -10,6 +10,53 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
+st.title("📝 Plateforme d'annotation")
+
+with st.expander("📘 Guide d’annotation (Cliquez pour lire)"):
+    st.markdown("""
+### 🎯 Objectif
+Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
+
+---
+
+### 🏷 1. Abusive / Non abusive
+- **abusive** : contient une insulte, une attaque, une menace, un harcèlement ou une discrimination.
+- **non abusive** : commentaire normal, neutre ou critique sans attaque.
+
+---
+
+### 🔥 2. Type d’abus
+Choisir le ou les types correspondants :
+- Insulte
+- Haine
+- Menace
+- Harcèlement
+- Discrimination
+- Autre
+
+---
+
+### 📊 3. Intensité
+- **faible** : attaque légère
+- **moyenne** : attaque claire
+- **élevée** : attaque violente ou grave
+
+---
+
+### 🌍 4. Langue
+- Français
+- Wolof
+- Français-Wolof (mélange des deux)
+
+---
+
+### ⚠ Règles importantes
+- Ne pas annoter deux fois le même commentaire.
+- Être cohérent.
+- Se baser uniquement sur le texte affiché.
+""")
+
+
 # ---------------- SESSION STATE INIT ----------------
 if "idx" not in st.session_state:
     st.session_state.idx = 0
