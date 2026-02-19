@@ -15,7 +15,7 @@ st.title("📝 Plateforme d'annotation")
 st.markdown("## 📘 Guide d’annotation")
 st.info("Lisez attentivement les instructions avant de commencer.")
 
-   st.markdown("""
+st.markdown("""
 ### 🎯 Objectif
 Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
 
