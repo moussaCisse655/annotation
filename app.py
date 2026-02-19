@@ -8,7 +8,7 @@ ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
-st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
+
 
 
 
