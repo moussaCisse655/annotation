@@ -12,7 +12,9 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
 st.title("📝 Plateforme d'annotation")
 
-with st.expander("📘 Guide d’annotation (Cliquez pour lire)"):
+st.markdown("## 📘 Guide d’annotation")
+st.info("Lisez attentivement les instructions avant de commencer.")
+
     st.markdown("""
 ### 🎯 Objectif
 Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
