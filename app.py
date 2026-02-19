@@ -16,24 +16,24 @@ st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
-### 🎯 Objectif
+###  Objectif
 Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
 
-### 🏷 Abusive / Non abusive
+###  Abusive / Non abusive
 - abusive : contient une insulte, menace, harcèlement, haine ou discrimination.
 - non abusive : commentaire normal ou critique sans attaque.
 
-### 🔥 Intensité
+###  Intensité
 - faible : attaque légère
 - moyenne : attaque claire
 - élevée : attaque grave ou violente
 
-### 🌍 Langue
+###  Langue
 - Français
 - Wolof
 - Français-Wolof (mélange)
 
-⚠ Basez-vous uniquement sur le texte affiché.
+  Basez-vous uniquement sur le texte affiché.
 """)
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
