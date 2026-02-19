@@ -245,9 +245,9 @@ if email == ADMIN_EMAIL:
 
 
             summary_list.append({
-                "Annotator": annot_count,
-                "CountNA": count_na,
-                "CountA": count_a,
+                "Annotateur": annot_count,
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
                 "Class": final_class,
                 "Annotation1": ann1,
                 "Annotation2": ann2,
