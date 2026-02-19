@@ -12,51 +12,32 @@ st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
 
 
-st.markdown("## 📘 Guide d’annotation")
-st.info("Lisez attentivement les instructions avant de commencer.")
+st.title("📝 Plateforme d'annotation")
 
-st.markdown("""
+with st.expander("📘 Guide d’annotation (Obligatoire)"):
+    st.markdown("""
 ### 🎯 Objectif
 Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
 
----
+### 🏷 Abusive / Non abusive
+- abusive : contient une insulte, menace, harcèlement, haine ou discrimination.
+- non abusive : commentaire normal ou critique sans attaque.
 
-### 🏷 1. Abusive / Non abusive
-- **abusive** : contient une insulte, une attaque, une menace, un harcèlement ou une discrimination.
-- **non abusive** : commentaire normal, neutre ou critique sans attaque.
+### 🔥 Intensité
+- faible : attaque légère
+- moyenne : attaque claire
+- élevée : attaque grave ou violente
 
----
-
-### 🔥 2. Type d’abus
-Choisir le ou les types correspondants :
-- Insulte
-- Haine
-- Menace
-- Harcèlement
-- Discrimination
-- Autre
-
----
-
-### 📊 3. Intensité
-- **faible** : attaque légère
-- **moyenne** : attaque claire
-- **élevée** : attaque violente ou grave
-
----
-
-### 🌍 4. Langue
+### 🌍 Langue
 - Français
 - Wolof
-- Français-Wolof (mélange des deux)
+- Français-Wolof (mélange)
 
----
-
-### ⚠ Règles importantes
-- Ne pas annoter deux fois le même commentaire.
-- Être cohérent.
-- Se baser uniquement sur le texte affiché.
+⚠ Basez-vous uniquement sur le texte affiché.
 """)
+
+guide_ok = st.checkbox("✅ J’ai lu et compris le guide d’annotation")
+
 
 
 # ---------------- SESSION STATE INIT ----------------
@@ -150,6 +131,9 @@ if st.session_state.last_email != email:
 
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
+    st.stop()
+if not guide_ok:
+    st.warning("Vous devez lire et accepter le guide avant de commencer l’annotation.")
     st.stop()
 
 data = load_data()
