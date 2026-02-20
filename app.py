@@ -16,20 +16,20 @@ st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
-### 🎯 Objectif
+###  Objectif
 Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
 Votre rôle est d’identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
 
 ---
 
-### 🔎 Abusive / Non abusive
+###  Abusive / Non abusive
 
 - **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
 - **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
 
 ---
 
-### 🧨 Types d’abus (à choisir uniquement si "abusive")
+###  Types d’abus (à choisir uniquement si "abusive")
 
 Choisissez le type correspondant au contenu du commentaire :
 
@@ -47,11 +47,11 @@ Choisissez le type correspondant au contenu du commentaire :
 
 - **Autre** : abus qui ne correspond à aucune des catégories ci-dessus
 
-👉 Si plusieurs types apparaissent dans le même commentaire, vous pouvez en sélectionner plusieurs.
+ Si plusieurs types apparaissent dans le même commentaire, vous pouvez en sélectionner plusieurs.
 
 ---
 
-### 🔥 Intensité
+###  Intensité
 
 - **faible** : attaque légère ou indirecte
 - **moyenne** : attaque claire et explicite
@@ -59,17 +59,17 @@ Choisissez le type correspondant au contenu du commentaire :
 
 ---
 
-### 🌍 Langue
+###  Langue
 
 - Français
 - Wolof
 - Français-Wolof (mélange des deux)
 
-⚠️ Si vous choisissez "Français-Wolof", ne sélectionnez pas d’autre langue.
+ Si vous choisissez "Français-Wolof", ne sélectionnez pas d’autre langue.
 
 ---
 
-📌 Important : Basez-vous uniquement sur le texte affiché.
+ Important : Basez-vous uniquement sur le texte affiché.
 Ne tenez pas compte de votre opinion personnelle.
 """)
 
