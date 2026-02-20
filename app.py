@@ -17,7 +17,7 @@ st.title("📝 Plateforme d'annotation")
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
 ###  Objectif
-Cette plateforme sert à annoter des commentaires pour un projet de recherche en NLP.
+Cette plateforme sert à annoter des commentaires pour un memoire de recherche en NLP.
 Votre rôle est d’identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
 
 ---
