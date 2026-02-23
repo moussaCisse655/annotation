@@ -2,20 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-import sqlite3
 
-st.write("Dossier courant :", os.getcwd())
-st.write("Fichiers dans le dossier :", os.listdir())
-
-db_path = "annotations.db"
-
-conn = sqlite3.connect(db_path)
-conn.close()
-
-if os.path.exists(db_path):
-    st.success("La base existe ✅")
-else:
-    st.error("La base n'existe pas ❌")
 
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
