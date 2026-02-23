@@ -4,6 +4,9 @@ import os
 
 import sqlite3
 
+st.write("Dossier courant :", os.getcwd())
+st.write("Fichiers dans le dossier :", os.listdir())
+
 db_path = "annotations.db"
 
 conn = sqlite3.connect(db_path)
