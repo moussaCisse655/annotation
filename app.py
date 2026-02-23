@@ -4,12 +4,15 @@ import os
 
 import sqlite3
 
-# Connexion (crée le fichier s'il n'existe pas)
-conn = sqlite3.connect("annotations.db")
+db_path = "annotations.db"
 
-print("Base de données créée avec succès ✅")
-
+conn = sqlite3.connect(db_path)
 conn.close()
+
+if os.path.exists(db_path):
+    st.success("La base existe ✅")
+else:
+    st.error("La base n'existe pas ❌")
 
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
