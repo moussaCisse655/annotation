@@ -2,6 +2,15 @@ import streamlit as st
 import pandas as pd
 import os
 
+import sqlite3
+
+# Connexion (crée le fichier s'il n'existe pas)
+conn = sqlite3.connect("annotations.db")
+
+print("Base de données créée avec succès ✅")
+
+conn.close()
+
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
