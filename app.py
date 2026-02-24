@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import os
-
+st.write("Fichiers présents :", os.listdir())
+st.write("Taille data.csv :", os.path.getsize("data.csv"))
 
 
 # ---------------- CONFIG ----------------
