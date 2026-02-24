@@ -12,6 +12,8 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
+
+
 st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
@@ -23,25 +25,54 @@ Votre rôle est d’identifier si un commentaire est abusif et, si oui, précise
 ---
 
 ###  Abusive / Non abusive
-- abusive : attaque dirigée contre une personne ou un groupe.
-- non abusive : neutre ou critique sans attaque personnelle.
+
+- **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
+- **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
 
 ---
 
-###  Types d’abus
-Insulte, Menace, Harcèlement, Haine, Discrimination, Autre
+###  Types d’abus (à choisir uniquement si "abusive")
+
+Choisissez le type correspondant au contenu du commentaire :
+
+- **Insulte** : mot offensant ou dégradant visant une personne  
+  (ex: idiot, imbécile, nul, etc.)
+
+- **Menace** : expression d’une intention de nuire physiquement ou moralement  
+  (ex: je vais te frapper, tu vas payer, etc.)
+
+- **Harcèlement** : attaques répétées, intimidation ou pression continue contre une personne
+
+- **Haine** : discours visant un groupe basé sur la religion, l’ethnie, la nationalité, le genre, etc.
+
+- **Discrimination** : exclusion, traitement injuste ou dévalorisation d’un groupe ou individu à cause de son identité
+
+- **Autre** : abus qui ne correspond à aucune des catégories ci-dessus
+
+ Si plusieurs types apparaissent dans le même commentaire, vous pouvez en sélectionner plusieurs.
 
 ---
 
 ###  Intensité
-faible, moyenne, élevée
+
+- **faible** : attaque légère ou indirecte
+- **moyenne** : attaque claire et explicite
+- **élevée** : attaque grave, violente ou très agressive
 
 ---
 
 ###  Langue
-Français, Wolof, Français-Wolof
 
-Important : Basez-vous uniquement sur le texte affiché.
+- Français
+- Wolof
+- Français-Wolof (mélange des deux)
+
+ Si vous choisissez "Français-Wolof", ne sélectionnez pas d’autre langue.
+
+---
+
+ Important : Basez-vous uniquement sur le texte affiché.
+Ne tenez pas compte de votre opinion personnelle.
 """)
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
