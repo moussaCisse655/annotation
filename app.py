@@ -216,9 +216,14 @@ if email == ADMIN_EMAIL:
 
         for cid, group in grouped:
 
-            tweet_text = data_admin.loc[
+          match = data_admin.loc[
                 data_admin["comment_id"] == cid, "text"
-            ].values[0]
+            ]
+        
+            if not match.empty:
+                tweet_text = match.values[0]
+            else:
+                tweet_text = "Commentaire introuvable (ID absent du dataset)"
 
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
