@@ -1,7 +1,7 @@
+
 import streamlit as st
 import pandas as pd
 import os
-
 
 
 # ---------------- CONFIG ----------------
@@ -12,68 +12,10 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
-
-
 st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
-    st.markdown("""
-###  Objectif
-Cette plateforme sert à annoter des commentaires pour un memoire de recherche en NLP.
-Votre rôle est d’identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
-
----
-
-###  Abusive / Non abusive
-
-- **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
-- **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
-
----
-
-###  Types d’abus (à choisir uniquement si "abusive")
-
-Choisissez le type correspondant au contenu du commentaire :
-
-- **Insulte** : mot offensant ou dégradant visant une personne  
-  (ex: idiot, imbécile, nul, etc.)
-
-- **Menace** : expression d’une intention de nuire physiquement ou moralement  
-  (ex: je vais te frapper, tu vas payer, etc.)
-
-- **Harcèlement** : attaques répétées, intimidation ou pression continue contre une personne
-
-- **Haine** : discours visant un groupe basé sur la religion, l’ethnie, la nationalité, le genre, etc.
-
-- **Discrimination** : exclusion, traitement injuste ou dévalorisation d’un groupe ou individu à cause de son identité
-
-- **Autre** : abus qui ne correspond à aucune des catégories ci-dessus
-
- Si plusieurs types apparaissent dans le même commentaire, vous pouvez en sélectionner plusieurs.
-
----
-
-###  Intensité
-
-- **faible** : attaque légère ou indirecte
-- **moyenne** : attaque claire et explicite
-- **élevée** : attaque grave, violente ou très agressive
-
----
-
-###  Langue
-
-- Français
-- Wolof
-- Français-Wolof (mélange des deux)
-
- Si vous choisissez "Français-Wolof", ne sélectionnez pas d’autre langue.
-
----
-
- Important : Basez-vous uniquement sur le texte affiché.
-Ne tenez pas compte de votre opinion personnelle.
-""")
+    st.markdown("""Ton guide ici...""")
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
@@ -115,22 +57,15 @@ def load_data():
     return df
 
 
-def load_data():
-        if os.path.exists(DATA_FILE):
-            df = pd.read_csv(DATA_FILE, encoding="utf-8")
-            return df
-        return pd.DataFrame()
-        # 🔥 Ajouter la colonne langue si elle n'existe pas
-        if "langue" not in df.columns:
-            df["langue"] = None
-
+# ---------------- LOAD ANNOTATIONS ----------------
+def load_annotations():
+    if os.path.exists(ANNOT_FILE):
+        df = pd.read_csv(ANNOT_FILE, encoding="utf-8")
         return df
-
+    else:
         return pd.DataFrame(
-        columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
-    )
-
-
+            columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
+        )
 
 
 # ---------------- SAVE ----------------
@@ -160,8 +95,6 @@ def get_available_comments(data, annotations, email):
 
 
 # ---------------- UI ----------------
-
-
 email = st.text_input("📧 Entrez votre email")
 
 if st.session_state.last_email != email:
@@ -171,6 +104,7 @@ if st.session_state.last_email != email:
 if not email:
     st.info("Veuillez entrer votre email pour commencer.")
     st.stop()
+
 if not guide_ok:
     st.warning("Vous devez lire et accepter le guide avant de commencer l’annotation.")
     st.stop()
@@ -196,13 +130,12 @@ if row is not None:
 
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
+
     langue = st.multiselect(
-    "Langue du commentaire",
-    ["Français", "Wolof", "Français-Wolof"],
-    key=f"langue_{st.session_state.langue_key}"
-)
-
-
+        "Langue du commentaire",
+        ["Français", "Wolof", "Français-Wolof"],
+        key=f"langue_{st.session_state.langue_key}"
+    )
 
     comment_id = row["comment_id"]
 
@@ -211,7 +144,6 @@ if row is not None:
         ["Choisir une option", "abusive", "non abusive"],
         key=f"label_{st.session_state.label_key}"
     )
-
 
     type_abus = None
     intensite = None
@@ -234,16 +166,15 @@ if row is not None:
         if label == "Choisir une option":
             st.warning("Veuillez choisir si le commentaire est abusive ou non abusive.")
             st.stop()
-    
-        # Vérification cohérence langue
+
         if "Français-Wolof" in langue and len(langue) > 1:
             st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
             st.stop()
-    
+
         if not langue:
             st.warning("Veuillez sélectionner au moins une langue.")
             st.stop()
-    
+
         save_annotation({
             "comment_id": comment_id,
             "email": email,
@@ -252,17 +183,13 @@ if row is not None:
             "intensite": ", ".join(intensite) if label == "abusive" else None,
             "langue": ", ".join(langue)
         })
-    
+
         st.session_state.label_key += 1
         st.session_state.type_key += 1
         st.session_state.intensite_key += 1
         st.session_state.langue_key += 1
-    
+
         st.rerun()
-
-
-
-
 
 
 # ---------------- ADMIN SECTION ----------------
@@ -283,14 +210,18 @@ if email == ADMIN_EMAIL:
         data_admin["comment_id"] = data_admin["comment_id"].astype(str)
 
         summary_list = []
-
         grouped = annotations.groupby("comment_id")
 
         for cid, group in grouped:
 
-            tweet_text = data_admin.loc[
+            match = data_admin.loc[
                 data_admin["comment_id"] == cid, "text"
-            ].values[0]
+            ]
+
+            if not match.empty:
+                tweet_text = match.values[0]
+            else:
+                tweet_text = "Commentaire introuvable (ID absent du dataset)"
 
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
@@ -299,28 +230,16 @@ if email == ADMIN_EMAIL:
             final_class = 1 if count_a > count_na else 0
 
             labels = group["label"].tolist()
-            
 
             ann1 = labels[0] if len(labels) > 0 else ""
             ann2 = labels[1] if len(labels) > 1 else ""
             ann3 = labels[2] if len(labels) > 2 else ""
 
             intensites = group["intensite"].dropna()
-
-            if not intensites.empty:
-                intensite_finale = intensites.value_counts().idxmax()
-            else:
-                intensite_finale = ""
-
+            intensite_finale = intensites.value_counts().idxmax() if not intensites.empty else ""
 
             langues = group["langue"].dropna()
-
-            if not langues.empty:
-                langue_finale = langues.value_counts().idxmax()
-            else:
-                langue_finale = ""
-
-
+            langue_finale = langues.value_counts().idxmax() if not langues.empty else ""
 
             summary_list.append({
                 "Annotateur": annot_count,
@@ -331,10 +250,7 @@ if email == ADMIN_EMAIL:
                 "Annotation2": ann2,
                 "Annotation3": ann3,
                 "Intensite": intensite_finale,
-
                 "Langue": langue_finale,
-
-
                 "Commentaires": tweet_text
             })
 
@@ -343,11 +259,11 @@ if email == ADMIN_EMAIL:
         st.dataframe(summary_df)
 
         st.download_button(
-            label="⬇️ Télécharger Annotation.csv",
+            label="⬇️ Télécharger Annotation_format.csv",
             data=summary_df.to_csv(index=False, encoding="utf-8"),
             file_name="Annotation_format.csv",
             mime="text/csv"
-        ) 
+        )
 
     if st.button("🗑 Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
@@ -357,6 +273,7 @@ if email == ADMIN_EMAIL:
             st.session_state.label_key = 0
             st.session_state.type_key = 0
             st.session_state.intensite_key = 0
+            st.session_state.langue_key = 0
 
             st.success("Annotations supprimées ✅")
             st.rerun()
