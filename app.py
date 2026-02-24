@@ -116,10 +116,10 @@ def load_data():
 
 
 def load_data():
-    if os.path.exists(DATA_FILE):
-        df = pd.read_csv(DATA_FILE, encoding="utf-8")
-        return df
-    return pd.DataFrame()
+        if os.path.exists(DATA_FILE):
+            df = pd.read_csv(DATA_FILE, encoding="utf-8")
+            return df
+        return pd.DataFrame()
         # 🔥 Ajouter la colonne langue si elle n'existe pas
         if "langue" not in df.columns:
             df["langue"] = None
