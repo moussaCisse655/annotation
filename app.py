@@ -11,12 +11,10 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
-
 st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""Ton guide ici...""")
-
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
@@ -211,19 +209,18 @@ if email == ADMIN_EMAIL:
         data_admin["comment_id"] = data_admin["comment_id"].astype(str)
 
         summary_list = []
-
         grouped = annotations.groupby("comment_id")
 
         for cid, group in grouped:
 
-          match = data_admin.loc[
-    data_admin["comment_id"] == cid, "text"
-]
+            match = data_admin.loc[
+                data_admin["comment_id"] == cid, "text"
+            ]
 
-if not match.empty:
-    tweet_text = match.values[0]
-else:
-    tweet_text = "Commentaire introuvable (ID absent du dataset)"
+            if not match.empty:
+                tweet_text = match.values[0]
+            else:
+                tweet_text = "Commentaire introuvable (ID absent du dataset)"
 
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
@@ -261,7 +258,7 @@ else:
         st.dataframe(summary_df)
 
         st.download_button(
-            label="⬇️ Télécharger Annotation.csv",
+            label="⬇️ Télécharger Annotation_format.csv",
             data=summary_df.to_csv(index=False, encoding="utf-8"),
             file_name="Annotation_format.csv",
             mime="text/csv"
@@ -275,6 +272,7 @@ else:
             st.session_state.label_key = 0
             st.session_state.type_key = 0
             st.session_state.intensite_key = 0
+            st.session_state.langue_key = 0
 
             st.success("Annotations supprimées ✅")
             st.rerun()
