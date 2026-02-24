@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import hashlib
 
+
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
@@ -10,39 +11,61 @@ MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
+
 st.title("📝 Plateforme d'annotation")
 
-# ---------------- GUIDE ----------------
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
-### Objectif
-Annoter des commentaires pour un mémoire de recherche en NLP.
+###  Objectif
+Cette plateforme sert à annoter des commentaires pour un memoire de recherche en NLP.
+Votre rôle est d’identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
 
-### abusive / non abusive
-- abusive : attaque contre personne ou groupe
-- non abusive : neutre ou critique sans attaque
+---
 
-### Types d’abus
+###  Abusive / Non abusive
+- abusive : attaque dirigée contre une personne ou un groupe.
+- non abusive : neutre ou critique sans attaque personnelle.
+
+---
+
+###  Types d’abus
 Insulte, Menace, Harcèlement, Haine, Discrimination, Autre
 
-### Intensité
+---
+
+###  Intensité
 faible, moyenne, élevée
 
-### Langue
+---
+
+###  Langue
 Français, Wolof, Français-Wolof
+
+Important : Basez-vous uniquement sur le texte affiché.
 """)
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
-# ---------------- SESSION STATE ----------------
+
+# ---------------- SESSION STATE INIT ----------------
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
 if "last_email" not in st.session_state:
     st.session_state.last_email = ""
 
-if "form_key" not in st.session_state:
-    st.session_state.form_key = 0
+if "label_key" not in st.session_state:
+    st.session_state.label_key = 0
+
+if "type_key" not in st.session_state:
+    st.session_state.type_key = 0
+
+if "intensite_key" not in st.session_state:
+    st.session_state.intensite_key = 0
+    
+if "langue_key" not in st.session_state:
+    st.session_state.langue_key = 0
+
 
 # ---------------- LOAD DATA ----------------
 def load_data():
@@ -56,12 +79,13 @@ def load_data():
     df = df[df["text"].str.split().str.len() >= 3]
     df = df.reset_index(drop=True)
 
-    # ID basé sur hash du texte (robuste)
+    # ✅ ID unique basé sur le contenu du texte
     df["comment_id"] = df["text"].apply(
         lambda x: hashlib.md5(x.encode()).hexdigest()
     )
 
     return df
+
 
 # ---------------- LOAD ANNOTATIONS ----------------
 def load_annotations():
@@ -72,13 +96,15 @@ def load_annotations():
             columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
         )
 
+
 # ---------------- SAVE ----------------
 def save_annotation(row):
     ann = load_annotations()
     ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
     ann.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
-# ---------------- FILTER COMMENTS ----------------
+
+# ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
 
     annotations["comment_id"] = annotations["comment_id"].astype(str)
@@ -96,6 +122,7 @@ def get_available_comments(data, annotations, email):
 
     return data[data["comment_id"].apply(is_available)]
 
+
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
 
@@ -108,23 +135,27 @@ if not email:
     st.stop()
 
 if not guide_ok:
-    st.warning("Vous devez accepter le guide.")
+    st.warning("Vous devez lire et accepter le guide avant de commencer l’annotation.")
     st.stop()
 
 data = load_data()
 annotations = load_annotations()
 
-# 🔥 Supprime automatiquement les annotations d’un ancien dataset
+# ✅ Nettoyage automatique des annotations d’un ancien dataset
 if not annotations.empty:
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
     annotations = annotations[
         annotations["comment_id"].isin(data["comment_id"])
     ]
+
     annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
 available = get_available_comments(data, annotations, email)
 
 if available.empty:
-    st.success("🎉 Tous les commentaires ont été annotés.")
+    st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     row = None
 else:
     if st.session_state.idx >= len(available):
@@ -133,22 +164,25 @@ else:
     else:
         row = available.iloc[st.session_state.idx]
 
-# ---------------- DISPLAY COMMENT ----------------
+
+# ---------------- AFFICHAGE COMMENTAIRE ----------------
 if row is not None:
 
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
 
     langue = st.multiselect(
-        "Langue",
+        "Langue du commentaire",
         ["Français", "Wolof", "Français-Wolof"],
-        key=f"lang_{st.session_state.form_key}"
+        key=f"langue_{st.session_state.langue_key}"
     )
+
+    comment_id = row["comment_id"]
 
     label = st.selectbox(
         "Ce commentaire est-il abusif ?",
         ["Choisir une option", "abusive", "non abusive"],
-        key=f"label_{st.session_state.form_key}"
+        key=f"label_{st.session_state.label_key}"
     )
 
     type_abus = []
@@ -158,31 +192,31 @@ if row is not None:
         type_abus = st.multiselect(
             "Type(s) d’abus",
             ["Insulte", "Haine", "Menace", "Harcèlement", "Discrimination", "Autre"],
-            key=f"type_{st.session_state.form_key}"
+            key=f"type_{st.session_state.type_key}"
         )
 
         intensite = st.multiselect(
             "Intensité",
             ["faible", "moyenne", "élevée"],
-            key=f"int_{st.session_state.form_key}"
+            key=f"intensite_{st.session_state.intensite_key}"
         )
 
     if st.button("💾 Enregistrer et suivant"):
 
         if label == "Choisir une option":
-            st.warning("Veuillez choisir une option.")
+            st.warning("Veuillez choisir si le commentaire est abusive ou non abusive.")
             st.stop()
 
         if "Français-Wolof" in langue and len(langue) > 1:
-            st.warning("Ne combinez pas Français-Wolof avec d'autres.")
+            st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
             st.stop()
 
         if not langue:
-            st.warning("Sélectionnez une langue.")
+            st.warning("Veuillez sélectionner au moins une langue.")
             st.stop()
 
         save_annotation({
-            "comment_id": row["comment_id"],
+            "comment_id": comment_id,
             "email": email,
             "label": label,
             "type_abus": ", ".join(type_abus) if label == "abusive" else "",
@@ -190,43 +224,83 @@ if row is not None:
             "langue": ", ".join(langue)
         })
 
-        st.session_state.form_key += 1
+        st.session_state.label_key += 1
+        st.session_state.type_key += 1
+        st.session_state.intensite_key += 1
+        st.session_state.langue_key += 1
+
         st.rerun()
 
-# ---------------- ADMIN ----------------
+
+# ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
 if email == ADMIN_EMAIL:
 
-    st.subheader("🔐 Zone Admin")
+    st.subheader("🔐 Zone Admin – Résumé Annotation")
 
     annotations = load_annotations()
+    data_admin = load_data()
 
     if annotations.empty:
-        st.info("Aucune annotation.")
+        st.info("Aucune annotation enregistrée.")
     else:
-        summary = annotations.groupby("comment_id").agg(
-            total_annotations=("label", "count"),
-            abusive_count=("label", lambda x: (x == "abusive").sum()),
-            non_abusive_count=("label", lambda x: (x == "non abusive").sum())
-        ).reset_index()
 
-        summary["final_class"] = summary.apply(
-            lambda x: 1 if x["abusive_count"] > x["non_abusive_count"] else 0,
-            axis=1
-        )
+        annotations["comment_id"] = annotations["comment_id"].astype(str)
+        data_admin["comment_id"] = data_admin["comment_id"].astype(str)
 
-        summary = summary.merge(
-            data[["comment_id", "text"]],
-            on="comment_id",
-            how="left"
-        )
+        summary_list = []
+        grouped = annotations.groupby("comment_id")
 
-        st.dataframe(summary)
+        for cid, group in grouped:
+
+            match = data_admin.loc[
+                data_admin["comment_id"] == cid, "text"
+            ]
+
+            if not match.empty:
+                tweet_text = match.values[0]
+            else:
+                tweet_text = "Commentaire introuvable (ID absent du dataset)"
+
+            annot_count = len(group)
+            count_na = len(group[group["label"] == "non abusive"])
+            count_a = len(group[group["label"] == "abusive"])
+
+            final_class = 1 if count_a > count_na else 0
+
+            labels = group["label"].tolist()
+
+            ann1 = labels[0] if len(labels) > 0 else ""
+            ann2 = labels[1] if len(labels) > 1 else ""
+            ann3 = labels[2] if len(labels) > 2 else ""
+
+            intensites = group["intensite"].dropna()
+            intensite_finale = intensites.value_counts().idxmax() if not intensites.empty else ""
+
+            langues = group["langue"].dropna()
+            langue_finale = langues.value_counts().idxmax() if not langues.empty else ""
+
+            summary_list.append({
+                "Annotateur": annot_count,
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
+                "Class": final_class,
+                "Annotation1": ann1,
+                "Annotation2": ann2,
+                "Annotation3": ann3,
+                "Intensite": intensite_finale,
+                "Langue": langue_finale,
+                "Commentaires": tweet_text
+            })
+
+        summary_df = pd.DataFrame(summary_list)
+
+        st.dataframe(summary_df)
 
         st.download_button(
             label="⬇️ Télécharger Annotation_format.csv",
-            data=summary.to_csv(index=False),
+            data=summary_df.to_csv(index=False, encoding="utf-8"),
             file_name="Annotation_format.csv",
             mime="text/csv"
         )
@@ -234,5 +308,14 @@ if email == ADMIN_EMAIL:
     if st.button("🗑 Supprimer toutes les annotations"):
         if os.path.exists(ANNOT_FILE):
             os.remove(ANNOT_FILE)
-            st.success("Annotations supprimées.")
+
+            st.session_state.idx = 0
+            st.session_state.label_key = 0
+            st.session_state.type_key = 0
+            st.session_state.intensite_key = 0
+            st.session_state.langue_key = 0
+
+            st.success("Annotations supprimées ✅")
             st.rerun()
+        else:
+            st.info("Aucun fichier à supprimer.")
