@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-st.write("Fichiers présents :", os.listdir())
-st.write("Taille data.csv :", os.path.getsize("data.csv"))
+
 
 
 # ---------------- CONFIG ----------------
@@ -116,10 +115,11 @@ def load_data():
     return df
 
 
-def load_annotations():
-    if os.path.exists(ANNOT_FILE):
-        df = pd.read_csv(ANNOT_FILE, encoding="utf-8")
-
+def load_data():
+    if os.path.exists(DATA_FILE):
+        df = pd.read_csv(DATA_FILE, encoding="utf-8")
+        return df
+    return pd.DataFrame()
         # 🔥 Ajouter la colonne langue si elle n'existe pas
         if "langue" not in df.columns:
             df["langue"] = None
