@@ -16,7 +16,10 @@ st.title("📝 Plateforme d'annotation")
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""Ton guide ici...""")
 
-guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
+guide_ok = st.checkbox(
+    "J’ai lu et compris le guide d’annotation",
+    key="guide_checkbox"
+)
 
 
 # ---------------- SESSION STATE INIT ----------------
