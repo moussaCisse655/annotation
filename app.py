@@ -220,10 +220,10 @@ if email == ADMIN_EMAIL:
                 data_admin["comment_id"] == cid, "text"
             ]
         
-                if not match.empty:
-                    tweet_text = match.values[0]
-                else:
-                    tweet_text = "Commentaire introuvable (ID absent du dataset)"
+         if not match.empty:
+              tweet_text = match.values[0]
+         else:
+         tweet_text = "Commentaire introuvable (ID absent du dataset)"
 
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
