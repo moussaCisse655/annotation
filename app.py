@@ -126,7 +126,7 @@ def load_data():
 
         return df
 
-    return pd.DataFrame(
+        return pd.DataFrame(
         columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
     )
 
