@@ -130,29 +130,36 @@ def load_annotations():
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
-    ann = load_annotations()
-    ann = pd.concat([ann, pd.DataFrame([row])], ignore_index=True)
-    ann.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
-
+    df = pd.DataFrame([row])
+    if not os.path.exists(ANNOT_FILE):
+        df.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
+    else:
+        df.to_csv(ANNOT_FILE, mode="a", header=False, index=False, encoding="utf-8")
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
 
+    if annotations.empty:
+        return data
+
     annotations["comment_id"] = annotations["comment_id"].astype(str)
-    data["comment_id"] = data["comment_id"].astype(str)
 
-    total_count = annotations.groupby("comment_id").size()
+    # Nombre total d’annotations par commentaire
+    total_count = annotations["comment_id"].value_counts()
 
-    def is_available(cid):
-        total = total_count.get(cid, 0)
-        already_by_user = (
-            (annotations["comment_id"] == cid) &
-            (annotations["email"] == email)
-        ).any()
-        return total < MAX_ANNOT and not already_by_user
+    # Commentaires déjà annotés par l'utilisateur
+    user_annotated = annotations[
+        annotations["email"] == email
+    ]["comment_id"].unique()
 
-    return data[data["comment_id"].apply(is_available)]
+    # Filtrage vectorisé (beaucoup plus rapide)
+    mask = (
+        data["comment_id"].map(total_count).fillna(0) < MAX_ANNOT
+    ) & (
+        ~data["comment_id"].isin(user_annotated)
+    )
 
+    return data[mask]
 
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
