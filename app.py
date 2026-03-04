@@ -273,7 +273,7 @@ if row is not None:
 # ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
-ADMIN_EMAILS = ["cissemoussa681@gmail.com", "koumba23@gmail.com"]  # ajouter d'autres admins ici 
+ADMIN_EMAILS = ["cissemoussa681@gmail.com", "kdrame@univ-zig.sn"]  # ajouter d'autres admins ici 
 
 if email in ADMIN_EMAILS:
 
