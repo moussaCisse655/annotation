@@ -273,7 +273,9 @@ if row is not None:
 # ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
-if email == ADMIN_EMAIL:
+ADMIN_EMAILS = ["cissemoussa681@gmail.com", "koumba23@gmail.com"]  # ajouter d'autres admins ici
+
+if email in ADMIN_EMAILS:
 
     st.subheader("🔐 Zone Admin – Résumé Annotation")
 
