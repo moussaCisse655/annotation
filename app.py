@@ -313,11 +313,26 @@ if email == ADMIN_EMAIL:
             ann2 = labels[1] if len(labels) > 1 else ""
             ann3 = labels[2] if len(labels) > 2 else ""
 
-            intensites = group["intensite"].dropna()
-            intensite_finale = intensites.value_counts().idxmax() if not intensites.empty else ""
+            # -------- Intensité individuelle --------
+            intensites = group["intensite"].tolist()
 
-            langues = group["langue"].dropna()
-            langue_finale = langues.value_counts().idxmax() if not langues.empty else ""
+            intensite1 = intensites[0] if len(intensites) > 0 else ""
+            intensite2 = intensites[1] if len(intensites) > 1 else ""
+            intensite3 = intensites[2] if len(intensites) > 2 else ""
+
+            # -------- Langue individuelle --------
+            langues = group["langue"].tolist()
+
+            langue1 = langues[0] if len(langues) > 0 else ""
+            langue2 = langues[1] if len(langues) > 1 else ""
+            langue3 = langues[2] if len(langues) > 2 else ""
+
+            # -------- Type d'abus individuel --------
+            abus = group["type_abus"].tolist()
+
+            abus1 = abus[0] if len(abus) > 0 else ""
+            abus2 = abus[1] if len(abus) > 1 else ""
+            abus3 = abus[2] if len(abus) > 2 else ""
 
             summary_list.append({
                 "Annotateur": annot_count,
@@ -327,11 +342,17 @@ if email == ADMIN_EMAIL:
                 "Annotation1": ann1,
                 "Annotation2": ann2,
                 "Annotation3": ann3,
-                "Intensite": intensite_finale,
-                "Langue": langue_finale,
+                "Intensite1": intensite1,
+                "Intensite2": intensite2,
+                "Intensite3": intensite3,
+                "Langue1": langue1,
+                "Langue2": langue2,
+                "Langue3": langue3,
+                "Abus1": abus1,
+                "Abus2": abus2,
+                "Abus3": abus3,
                 "Commentaires": tweet_text
             })
-
         summary_df = pd.DataFrame(summary_list)
 
         st.dataframe(summary_df)
