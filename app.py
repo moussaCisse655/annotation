@@ -6,7 +6,7 @@ import gspread
 from google.oauth2 import service_account
 
 # ---------------- CONFIG ----------------
-DATA_FILE = "data.csv"
+DATA_FILE = "data.csv" 
 ANNOT_FILE = "annotations.csv"
 MAX_ANNOT = 3
 ADMIN_EMAILS = ["cissemoussa681@gmail.com", "kdrame@univ-zig.sn"]
