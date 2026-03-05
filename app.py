@@ -135,58 +135,58 @@ def save_annotation(row):
         data_admin = load_data()
         summary_list = []
 
-    grouped = df_raw.groupby("comment_id")
-    
-    for cid, group in grouped:
-    
-        tweet_text = data_admin.loc[data_admin["comment_id"] == cid, "text"].values[0]
-    
-        group = group.head(3)   # maximum 3 annotateurs
-    
-        labels = group["label"].tolist()
-        intensites = group["intensite"].tolist()
-        langues = group["langue"].tolist()
-        abus = group["type_abus"].tolist()
-    
-        # compléter jusqu'à 3
-        while len(labels) < 3:
-            labels.append("")
-        while len(intensites) < 3:
-            intensites.append("")
-        while len(langues) < 3:
-            langues.append("")
-        while len(abus) < 3:
-            abus.append("")
-    
-        count_na = labels.count("non abusive")
-        count_a = labels.count("abusive")
-    
-        final_class = 1 if count_a > count_na else 0
-    
-        summary_list.append({
-            "Annotateur": len(group),
-            "Nbr-NA": count_na,
-            "Nbr-A": count_a,
-            "Class": final_class,
-    
-            "Ann1": labels[0],
-            "Ann2": labels[1],
-            "Ann3": labels[2],
-    
-            "Int1": intensites[0],
-            "Int2": intensites[1],
-            "Int3": intensites[2],
-    
-            "L1": langues[0],
-            "L2": langues[1],
-            "L3": langues[2],
-    
-            "Abus1": abus[0],
-            "Abus2": abus[1],
-            "Abus3": abus[2],
-    
-            "Commentaires": tweet_text
-        })
+        grouped = df_raw.groupby("comment_id")
+        
+        for cid, group in grouped:
+        
+            tweet_text = data_admin.loc[data_admin["comment_id"] == cid, "text"].values[0]
+        
+            group = group.head(3)   # maximum 3 annotateurs
+        
+            labels = group["label"].tolist()
+            intensites = group["intensite"].tolist()
+            langues = group["langue"].tolist()
+            abus = group["type_abus"].tolist()
+        
+            # compléter jusqu'à 3
+            while len(labels) < 3:
+                labels.append("")
+            while len(intensites) < 3:
+                intensites.append("")
+            while len(langues) < 3:
+                langues.append("")
+            while len(abus) < 3:
+                abus.append("")
+        
+            count_na = labels.count("non abusive")
+            count_a = labels.count("abusive")
+        
+            final_class = 1 if count_a > count_na else 0
+        
+            summary_list.append({
+                "Annotateur": len(group),
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
+                "Class": final_class,
+        
+                "Ann1": labels[0],
+                "Ann2": labels[1],
+                "Ann3": labels[2],
+        
+                "Int1": intensites[0],
+                "Int2": intensites[1],
+                "Int3": intensites[2],
+        
+                "L1": langues[0],
+                "L2": langues[1],
+                "L3": langues[2],
+        
+                "Abus1": abus[0],
+                "Abus2": abus[1],
+                "Abus3": abus[2],
+        
+                "Commentaires": tweet_text
+            })
         summary_df = pd.DataFrame(summary_list)
         summary_sheet.clear()
         summary_sheet.update([summary_df.columns.tolist()] + summary_df.values.tolist())
