@@ -9,8 +9,9 @@ import streamlit as st
 from google.oauth2 import service_account
 
 credentials = service_account.Credentials.from_service_account_info(
-    dict(st.secrets["gcp_service_account"])
+    st.secrets["gcp_service_account"]  # Directement !
 )
+
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
