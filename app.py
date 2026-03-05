@@ -155,18 +155,15 @@ def save_annotation(row):
     if not SHEETS_OK or not sheet:
         return
 
-    # ---------------- Sauvegarde Google Sheets ----------------
     try:
-        # Récupérer toutes les lignes existantes
-        records = sheet.get_all_records()
-        if records:
-            df = pd.DataFrame(records)
-            # Supprimer les lignes résumé existantes
-            df = df[~df.apply(lambda row: row.astype(str).str.contains("Annotateur").any(), axis=1)]
-        else:
-            df = pd.DataFrame(columns=["comment_id","email","label","type_abus","intensite","langue"])
+        # Utiliser une feuille séparée pour les annotations brutes
+        raw_sheet = client.open("Annotations").worksheet("Brut")  # Crée cette feuille manuellement si nécessaire
 
-        # Vérifier si cette annotation existe déjà pour cet email et comment_id
+        # Lire les annotations existantes
+        records = raw_sheet.get_all_records()
+        df = pd.DataFrame(records) if records else pd.DataFrame(columns=["comment_id","email","label","type_abus","intensite","langue"])
+
+        # Append ou update pour cet annotateur + comment_id
         exists = df[(df["comment_id"] == row["comment_id"]) & (df["email"] == row["email"])]
         if exists.empty:
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
@@ -174,15 +171,18 @@ def save_annotation(row):
             df.loc[(df["comment_id"] == row["comment_id"]) & (df["email"] == row["email"]), ["label","type_abus","intensite","langue"]] = \
                 row["label"], row["type_abus"], row["intensite"], row["langue"]
 
-        # ---------------- Créer le résumé ----------------
+        # Effacer et réécrire uniquement les annotations brutes
+        raw_sheet.clear()
+        raw_sheet.update([df.columns.tolist()] + df.values.tolist())
+
+        # ---------------- Résumé (Admin) sur une autre feuille ----------------
+        summary_sheet = client.open("Annotations").worksheet("Résumé")  # Crée cette feuille manuellement
         data_admin = load_data()
         summary_list = []
         grouped = df.groupby("comment_id")
 
         for cid, group in grouped:
-            match = data_admin.loc[data_admin["comment_id"] == cid, "text"]
-            tweet_text = match.values[0] if not match.empty else ""
-
+            tweet_text = data_admin.loc[data_admin["comment_id"] == cid, "text"].values[0]
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
             count_a = len(group[group["label"] == "abusive"])
@@ -229,16 +229,8 @@ def save_annotation(row):
             })
 
         summary_df = pd.DataFrame(summary_list)
-
-        # Effacer l'ancien contenu
-        sheet.clear()
-
-        # Écrire d'abord les annotations ligne par ligne
-        if not df.empty:
-            sheet.update([df.columns.tolist()] + df.values.tolist())
-        # Puis le résumé en dessous
-        if not summary_df.empty:
-            sheet.append_rows([summary_df.columns.tolist()] + summary_df.values.tolist(), value_input_option="USER_ENTERED")
+        summary_sheet.clear()
+        summary_sheet.update([summary_df.columns.tolist()] + summary_df.values.tolist())
 
     except Exception as e:
         st.warning(f"Erreur Google Sheets : {str(e)[:80]}")
