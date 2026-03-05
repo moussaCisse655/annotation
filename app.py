@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 import os
-import hashlib 
+import hashlib
 import gspread
-from google.oauth2 import service_account 
+from google.oauth2 import service_account
 
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
@@ -16,7 +16,9 @@ st.title("📝 Plateforme d'annotation")
 
 # ---------------- GOOGLE SHEETS ----------------
 SHEETS_OK = False
+sheet = None
 client = None
+
 try:
     credentials = service_account.Credentials.from_service_account_info(
         st.secrets["gcp_service_account"]
@@ -35,32 +37,38 @@ except Exception as e:
 with st.expander("📘 Guide d'annotation (Obligatoire)"):
     st.markdown("""
 ### Objectif
-Annoter des commentaires pour un mémoire NLP.
+Cette plateforme sert à annoter des commentaires pour un memoire de recherche en NLP.
+Votre rôle est d'identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
 
 ### Abusive / Non abusive
-- **abusive** : attaque dirigée contre une personne ou un groupe.
-- **non abusive** : commentaire neutre ou critique sans attaque.
+- **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
+- **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
 
-### Types d'abus (si "abusive")
-- Insulte, Menace, Harcèlement, Haine, Discrimination, Autre
+### Types d'abus (à choisir uniquement si "abusive")
+- **Insulte**, **Menace**, **Harcèlement**, **Haine**, **Discrimination**, **Autre**
 
 ### Intensité
-- faible, moyenne, élevée
+- **faible**, **moyenne**, **élevée**
 
 ### Langue
 - Français, Wolof, Français-Wolof
 """)
+
 guide_ok = st.checkbox("J'ai lu et compris le guide d'annotation")
 
 # ---------------- SESSION STATE ----------------
-if "idx" not in st.session_state: st.session_state.idx = 0
-if "last_email" not in st.session_state: st.session_state.last_email = ""
-if "label_key" not in st.session_state: st.session_state.label_key = 0
-if "type_key" not in st.session_state: st.session_state.type_key = 0
-if "intensite_key" not in st.session_state: st.session_state.intensite_key = 0
-if "langue_key" not in st.session_state: st.session_state.langue_key = 0
-if "data" not in st.session_state: st.session_state.data = None
-if "annotations" not in st.session_state: st.session_state.annotations = None
+if "idx" not in st.session_state:
+    st.session_state.idx = 0
+if "last_email" not in st.session_state:
+    st.session_state.last_email = ""
+if "label_key" not in st.session_state:
+    st.session_state.label_key = 0
+if "type_key" not in st.session_state:
+    st.session_state.type_key = 0
+if "intensite_key" not in st.session_state:
+    st.session_state.intensite_key = 0
+if "langue_key" not in st.session_state:
+    st.session_state.langue_key = 0
 
 # ---------------- LOAD DATA ----------------
 def load_data():
@@ -73,8 +81,9 @@ def load_data():
     df["comment_id"] = df["text"].apply(lambda x: hashlib.md5(x.encode()).hexdigest())
     return df
 
-# ---------------- GOOGLE SHEETS ----------------
+# ---------------- GOOGLE SHEETS FUNCTIONS ----------------
 def get_or_create_sheet(name, cols):
+    """Crée la feuille si elle n’existe pas et ajoute les en-têtes"""
     try:
         ws = client.open("Annotations").worksheet(name)
     except gspread.WorksheetNotFound:
@@ -83,7 +92,8 @@ def get_or_create_sheet(name, cols):
     return ws
 
 def save_annotation(row):
-    # --- LOCAL SAVE ---
+    """Sauvegarde local + Google Sheets (brut + résumé)"""
+    # --- LOCAL ---
     if os.path.exists(ANNOT_FILE):
         annotations = pd.read_csv(ANNOT_FILE, encoding="utf-8")
     else:
@@ -91,19 +101,101 @@ def save_annotation(row):
     annotations = pd.concat([annotations, pd.DataFrame([row])], ignore_index=True)
     annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
-    # --- GOOGLE SHEETS SAVE (append only) ---
-    if SHEETS_OK and client:
-        try:
-            raw_cols = ["comment_id","email","label","type_abus","intensite","langue"]
-            raw_sheet = get_or_create_sheet("Brut", raw_cols)
-            raw_sheet.append_row([row[c] for c in raw_cols])
-        except Exception as e:
-            st.warning(f"Erreur Google Sheets append : {str(e)[:80]}")
+    if not SHEETS_OK or not client:
+        return
 
-# ---------------- LOAD ANNOTATIONS ----------------
+    try:
+        # --- ANNOTATIONS BRUTES ---
+        raw_cols = ["comment_id","email","label","type_abus","intensite","langue"]
+        raw_sheet = get_or_create_sheet("Brut", raw_cols)
+
+        records = raw_sheet.get_all_records()
+        df_raw = pd.DataFrame(records) if records else pd.DataFrame(columns=raw_cols)
+
+        # Ajout ou update
+        exists = df_raw[(df_raw["comment_id"]==row["comment_id"]) & (df_raw["email"]==row["email"])]
+        if exists.empty:
+            df_raw = pd.concat([df_raw, pd.DataFrame([row])], ignore_index=True)
+        else:
+            df_raw.loc[(df_raw["comment_id"]==row["comment_id"]) & (df_raw["email"]==row["email"]),
+                       ["label","type_abus","intensite","langue"]] = row["label"], row["type_abus"], row["intensite"], row["langue"]
+
+        raw_sheet.clear()
+        raw_sheet.update([df_raw.columns.tolist()] + df_raw.values.tolist())
+
+        # --- RÉSUMÉ ADMIN ---
+        summary_cols = ["Annotateur","Nbr-NA","Nbr-A","Class",
+                        "Ann1","Ann2","Ann3",
+                        "Int1","Int2","Int3",
+                        "L1","L2","L3",
+                        "Abus1","Abus2","Abus3",
+                        "Commentaires"]
+        summary_sheet = get_or_create_sheet("Résumé", summary_cols)
+
+        data_admin = load_data()
+        summary_list = []
+
+        grouped = df_raw.groupby("comment_id")
+        
+        for cid, group in grouped:
+        
+            tweet_text = data_admin.loc[data_admin["comment_id"] == cid, "text"].values[0]
+        
+            group = group.head(3)   # maximum 3 annotateurs
+        
+            labels = group["label"].tolist()
+            intensites = group["intensite"].tolist()
+            langues = group["langue"].tolist()
+            abus = group["type_abus"].tolist()
+        
+            # compléter jusqu'à 3
+            while len(labels) < 3:
+                labels.append("")
+            while len(intensites) < 3:
+                intensites.append("")
+            while len(langues) < 3:
+                langues.append("")
+            while len(abus) < 3:
+                abus.append("")
+        
+            count_na = labels.count("non abusive")
+            count_a = labels.count("abusive")
+        
+            final_class = 1 if count_a > count_na else 0
+        
+            summary_list.append({
+                "Annotateur": len(group),
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
+                "Class": final_class,
+        
+                "Ann1": labels[0],
+                "Ann2": labels[1],
+                "Ann3": labels[2],
+        
+                "Int1": intensites[0],
+                "Int2": intensites[1],
+                "Int3": intensites[2],
+        
+                "L1": langues[0],
+                "L2": langues[1],
+                "L3": langues[2],
+        
+                "Abus1": abus[0],
+                "Abus2": abus[1],
+                "Abus3": abus[2],
+        
+                "Commentaires": tweet_text
+            })
+        summary_df = pd.DataFrame(summary_list)
+        summary_sheet.clear()
+        summary_sheet.update([summary_df.columns.tolist()] + summary_df.values.tolist())
+
+    except Exception as e:
+        st.warning(f"Erreur Google Sheets : {str(e)[:80]}")
+
 def load_annotations():
-    if st.session_state.annotations is not None:
-        return st.session_state.annotations
+    """Charge les annotations locales + Google Sheets brutes"""
     local_df = pd.read_csv(ANNOT_FILE, encoding="utf-8") if os.path.exists(ANNOT_FILE) else pd.DataFrame()
     if SHEETS_OK and client:
         try:
@@ -112,27 +204,50 @@ def load_annotations():
             sheets_df = pd.DataFrame(records)
             if not sheets_df.empty:
                 combined = pd.concat([sheets_df, local_df], ignore_index=True)
-                st.session_state.annotations = combined.drop_duplicates(subset=["comment_id","email"])
-                return st.session_state.annotations
+                return combined.drop_duplicates(subset=["comment_id","email"])
         except:
             pass
-    st.session_state.annotations = local_df
     return local_df
 
-# ---------------- GET AVAILABLE COMMENTS ----------------
 def get_available_comments(data, annotations, email):
+
     if annotations.empty:
         return data.reset_index(drop=True)
-    user_done = annotations.loc[annotations["email"]==email, "comment_id"]
-    counts = annotations.groupby("comment_id").size()
-    counts.name = "nb_annot"
-    merged = data.merge(counts, how="left", left_on="comment_id", right_index=True)
-    merged["nb_annot"] = merged["nb_annot"].fillna(0)
-    available = merged[(merged["nb_annot"] < MAX_ANNOT) & (~merged["comment_id"].isin(user_done))]
-    return available.reset_index(drop=True)
 
-# ---------------- LOAD SUMMARY ----------------
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
+    # commentaires déjà annotés par cet utilisateur
+    user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
+
+    # nombre total d'annotations par commentaire
+    counts = annotations.groupby("comment_id").size()
+
+    # commentaires qui n'ont pas encore atteint MAX_ANNOT
+    valid_ids = counts[counts < MAX_ANNOT].index.tolist()
+
+    available_list = []
+
+    for _, row in data.iterrows():
+
+        cid = row["comment_id"]
+
+        # jamais annoté
+        if cid not in counts.index:
+            available_list.append(row)
+
+        # annoté mais moins de 3 fois
+        elif cid in valid_ids:
+            available_list.append(row)
+
+    available = pd.DataFrame(available_list)
+
+    # enlever ceux déjà faits par cet utilisateur
+    available = available[~available["comment_id"].isin(user_done)]
+
+    return available.reset_index(drop=True)
 def load_summary_from_sheets():
+    """Récupère le résumé complet depuis Google Sheets"""
     if not SHEETS_OK or not client:
         return pd.DataFrame()
     summary_cols = ["Annotateur","Nbr-NA","Nbr-A","Class",
@@ -164,14 +279,10 @@ if not email:
     st.info("Veuillez entrer votre email pour commencer.")
     st.stop()
 if not guide_ok:
-    st.warning("Vous devez lire et accepter le guide avant de commencer.")
+    st.warning("Vous devez lire et accepter le guide avant de commencer l'annotation.")
     st.stop()
 
-# --- LOAD DATA ONCE ---
-if st.session_state.data is None:
-    st.session_state.data = load_data()
-data = st.session_state.data
-
+data = load_data()
 annotations = load_annotations()
 available = get_available_comments(data, annotations, email)
 
@@ -179,9 +290,9 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     row = None
 else:
+    # toujours prendre le premier commentaire disponible
     row = available.iloc[0]
-
-# --- COMMENT DISPLAY ---
+# ---------------- AFFICHAGE COMMENTAIRE ----------------
 if row is not None:
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
@@ -226,32 +337,29 @@ if row is not None:
             st.warning("Veuillez sélectionner au moins une langue.")
             st.stop()
 
-        row_data = {
+        save_annotation({
             "comment_id": comment_id,
             "email": email,
             "label": label,
             "type_abus": ", ".join(type_abus) if label=="abusive" else "",
             "intensite": ", ".join(intensite) if label=="abusive" else "",
             "langue": ", ".join(langue)
-        }
-
-        save_annotation(row_data)
+        })
 
         st.session_state.label_key += 1
         st.session_state.type_key += 1
         st.session_state.intensite_key += 1
         st.session_state.langue_key += 1
-
-        # Update session annotations
-        st.session_state.annotations = pd.concat([st.session_state.annotations, pd.DataFrame([row_data])], ignore_index=True)
+       
 
         st.success("✅ Sauvegardé !" + (" (Google Sheets)" if SHEETS_OK else " (local)"))
-        st.experimental_rerun()
+        st.rerun()
 
 # ---------------- ADMIN ----------------
 st.markdown("---")
 if email in ADMIN_EMAILS:
     st.subheader("🔐 Zone Admin – Résumé Annotation")
+
     summary_df = load_summary_from_sheets()
     if summary_df.empty:
         st.info("Aucune annotation disponible dans Google Sheets.")
