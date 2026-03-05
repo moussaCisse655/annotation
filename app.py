@@ -99,9 +99,7 @@ def load_annotations():
         return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"])
 
-# ----------- FONCTION MANQUANTE AJOUTÉE -----------
 def get_available_comments(data, annotations, email):
-
     if annotations.empty:
         return data.reset_index(drop=True)
 
@@ -109,11 +107,8 @@ def get_available_comments(data, annotations, email):
     data["comment_id"] = data["comment_id"].astype(str)
 
     user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
-
     counts = annotations.groupby("comment_id").size()
-
     valid_ids = counts[counts < MAX_ANNOT].index.tolist()
-
     never_annotated = data[~data["comment_id"].isin(counts.index)]
 
     available = pd.concat([
@@ -122,12 +117,11 @@ def get_available_comments(data, annotations, email):
     ])
 
     available = available[~available["comment_id"].isin(user_done)]
-
     return available.reset_index(drop=True)
-# --------------------------------------------------
 
+# ---------------- FONCTION CORRIGÉE ----------------
 def save_annotation(row):
-
+    # Sauvegarde locale (inchangée)
     if not SHEETS_OK or not sheet:
         annotations = load_annotations()
         new_row = pd.DataFrame([row])
@@ -135,89 +129,16 @@ def save_annotation(row):
         annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
         return
 
-    records = sheet.get_all_records()
-
-    if records:
-        df = pd.DataFrame(records)
-    else:
-        df = pd.DataFrame(columns=[
-            "comment_id","email","label","type_abus","intensite","langue"
-        ])
-
-    new_row = pd.DataFrame([row])
-    df = pd.concat([df, new_row], ignore_index=True)
-
-    data_admin = load_data()
-
-    summary_list = []
-
-    grouped = df.groupby("comment_id")
-
-    for cid, group in grouped:
-
-        match = data_admin.loc[data_admin["comment_id"] == cid, "text"]
-
-        if not match.empty:
-            tweet_text = match.values[0]
-        else:
-            tweet_text = ""
-
-        annot_count = len(group)
-
-        count_na = len(group[group["label"] == "non abusive"])
-        count_a = len(group[group["label"] == "abusive"])
-
-        final_class = 1 if count_a > count_na else 0
-
-        labels = group["label"].tolist()
-
-        ann1 = labels[0] if len(labels) > 0 else ""
-        ann2 = labels[1] if len(labels) > 1 else ""
-        ann3 = labels[2] if len(labels) > 2 else ""
-
-        intensites = group["intensite"].tolist()
-
-        int1 = intensites[0] if len(intensites) > 0 else ""
-        int2 = intensites[1] if len(intensites) > 1 else ""
-        int3 = intensites[2] if len(intensites) > 2 else ""
-
-        langues = group["langue"].tolist()
-
-        l1 = langues[0] if len(langues) > 0 else ""
-        l2 = langues[1] if len(langues) > 1 else ""
-        l3 = langues[2] if len(langues) > 2 else ""
-
-        abus = group["type_abus"].tolist()
-
-        a1 = abus[0] if len(abus) > 0 else ""
-        a2 = abus[1] if len(abus) > 1 else ""
-        a3 = abus[2] if len(abus) > 2 else ""
-
-        summary_list.append({
-            "Annotateur": annot_count,
-            "Nbr-NA": count_na,
-            "Nbr-A": count_a,
-            "Class": final_class,
-            "Ann1": ann1,
-            "Ann2": ann2,
-            "Ann3": ann3,
-            "Int1": int1,
-            "Int2": int2,
-            "Int3": int3,
-            "L1": l1,
-            "L2": l2,
-            "L3": l3,
-            "Abus1": a1,
-            "Abus2": a2,
-            "Abus3": a3,
-            "Commentaires": tweet_text
-        })
-
-    summary_df = pd.DataFrame(summary_list)
-
-    data_to_write = [summary_df.columns.tolist()] + summary_df.values.tolist()
-
-    sheet.update("A1", data_to_write)
+    # GOOGLE SHEETS : APPEND UNIQUEMENT (CORRECTION)
+    sheet.append_row([
+        row["comment_id"],
+        row["email"],
+        row["label"],
+        row["type_abus"],
+        row["intensite"],
+        row["langue"]
+    ])
+# --------------------------------------------------
 
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
