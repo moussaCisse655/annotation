@@ -290,12 +290,8 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     row = None
 else:
-    if st.session_state.idx >= len(available):
-        st.success("🎉 Annotation terminée pour vous.")
-        row = None
-    else:
-        row = available.iloc[st.session_state.idx]
-
+    # toujours prendre le premier commentaire disponible
+    row = available.iloc[0]
 # ---------------- AFFICHAGE COMMENTAIRE ----------------
 if row is not None:
     st.markdown("### 💬 Commentaire")
@@ -354,7 +350,7 @@ if row is not None:
         st.session_state.type_key += 1
         st.session_state.intensite_key += 1
         st.session_state.langue_key += 1
-        st.session_state.idx += 1
+       
 
         st.success("✅ Sauvegardé !" + (" (Google Sheets)" if SHEETS_OK else " (local)"))
         st.rerun()
