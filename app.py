@@ -5,6 +5,12 @@ import hashlib
 import gspread
 from google.oauth2 import service_account
 
+import streamlit as st
+
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
