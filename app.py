@@ -86,7 +86,10 @@ credentials = service_account.Credentials.from_service_account_info(
 )
 
 scoped_credentials = credentials.with_scopes(
-    ["https://www.googleapis.com/auth/spreadsheets"]
+    [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 )
 
 client = gspread.authorize(scoped_credentials)
