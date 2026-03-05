@@ -64,11 +64,11 @@ Votre rôle est d'identifier si un commentaire est abusif et, si oui, préciser 
 - Français
 - Wolof
 - Français-Wolof (mélange des deux)
-    """)
+""")
 
 guide_ok = st.checkbox("J'ai lu et compris le guide d'annotation")
 
-# ---------------- SESSION STATE INIT (exactement comme avant) ----------------
+# ---------------- SESSION STATE INIT ----------------
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 if "last_email" not in st.session_state:
@@ -82,7 +82,7 @@ if "intensite_key" not in st.session_state:
 if "langue_key" not in st.session_state:
     st.session_state.langue_key = 0
 
-# ---------------- LOAD DATA (IDENTIQUE) ----------------
+# ---------------- LOAD DATA ----------------
 def load_data():
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig", engine="python")
     if "text" not in df.columns:
@@ -99,6 +99,33 @@ def load_annotations():
         return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"])
 
+# ----------- FONCTION MANQUANTE AJOUTÉE -----------
+def get_available_comments(data, annotations, email):
+
+    if annotations.empty:
+        return data.reset_index(drop=True)
+
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
+    user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
+
+    counts = annotations.groupby("comment_id").size()
+
+    valid_ids = counts[counts < MAX_ANNOT].index.tolist()
+
+    never_annotated = data[~data["comment_id"].isin(counts.index)]
+
+    available = pd.concat([
+        data[data["comment_id"].isin(valid_ids)],
+        never_annotated
+    ])
+
+    available = available[~available["comment_id"].isin(user_done)]
+
+    return available.reset_index(drop=True)
+# --------------------------------------------------
+
 def save_annotation(row):
 
     if not SHEETS_OK or not sheet:
@@ -108,7 +135,6 @@ def save_annotation(row):
         annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
         return
 
-    # -------- charger les données actuelles du sheet --------
     records = sheet.get_all_records()
 
     if records:
@@ -118,11 +144,9 @@ def save_annotation(row):
             "comment_id","email","label","type_abus","intensite","langue"
         ])
 
-    # -------- ajouter la nouvelle annotation --------
     new_row = pd.DataFrame([row])
     df = pd.concat([df, new_row], ignore_index=True)
 
-    # -------- charger dataset original --------
     data_admin = load_data()
 
     summary_list = []
@@ -191,7 +215,6 @@ def save_annotation(row):
 
     summary_df = pd.DataFrame(summary_list)
 
-    # -------- réécrire complètement le sheet --------
     sheet.clear()
 
     sheet.append_row(summary_df.columns.tolist())
@@ -199,7 +222,7 @@ def save_annotation(row):
     for _, r in summary_df.iterrows():
         sheet.append_row(r.tolist())
 
-# ---------------- UI (IDENTIQUE) ----------------
+# ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
 
 if st.session_state.last_email != email:
@@ -235,7 +258,7 @@ else:
     else:
         row = available.iloc[st.session_state.idx]
 
-# ---------------- AFFICHAGE COMMENTAIRE (IDENTIQUE) ----------------
+# ---------------- AFFICHAGE COMMENTAIRE ----------------
 if row is not None:
     st.markdown("### 💬 Commentaire")
     st.write(row["text"])
@@ -298,7 +321,7 @@ if row is not None:
         st.success("✅ Sauvegardé !" + (" (Google Sheets)" if SHEETS_OK else " (local)"))
         st.rerun()
 
-# ---------------- ADMIN SECTION (IDENTIQUE) ----------------
+# ---------------- ADMIN SECTION ----------------
 st.markdown("---")
 
 if email in ADMIN_EMAILS:
