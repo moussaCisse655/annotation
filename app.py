@@ -210,17 +210,42 @@ def load_annotations():
     return local_df
 
 def get_available_comments(data, annotations, email):
+
     if annotations.empty:
         return data.reset_index(drop=True)
+
     annotations["comment_id"] = annotations["comment_id"].astype(str)
     data["comment_id"] = data["comment_id"].astype(str)
-    user_done = annotations[annotations["email"]==email]["comment_id"].tolist()
-    counts = annotations.groupby("comment_id").size()
-    valid_ids = counts[counts<MAX_ANNOT].index.tolist()
-    never_annotated = data[~data["comment_id"].isin(counts.index)]
-    available = pd.concat([data[data["comment_id"].isin(valid_ids)], never_annotated])
-    return available[~available["comment_id"].isin(user_done)].reset_index(drop=True)
 
+    # commentaires déjà annotés par cet utilisateur
+    user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
+
+    # nombre total d'annotations par commentaire
+    counts = annotations.groupby("comment_id").size()
+
+    # commentaires qui n'ont pas encore atteint MAX_ANNOT
+    valid_ids = counts[counts < MAX_ANNOT].index.tolist()
+
+    available_list = []
+
+    for _, row in data.iterrows():
+
+        cid = row["comment_id"]
+
+        # jamais annoté
+        if cid not in counts.index:
+            available_list.append(row)
+
+        # annoté mais moins de 3 fois
+        elif cid in valid_ids:
+            available_list.append(row)
+
+    available = pd.DataFrame(available_list)
+
+    # enlever ceux déjà faits par cet utilisateur
+    available = available[~available["comment_id"].isin(user_done)]
+
+    return available.reset_index(drop=True)
 def load_summary_from_sheets():
     """Récupère le résumé complet depuis Google Sheets"""
     if not SHEETS_OK or not client:
