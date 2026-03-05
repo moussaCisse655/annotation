@@ -15,9 +15,10 @@ st.set_page_config(page_title="Plateforme d'annotation", layout="centered")
 
 st.title("📝 Plateforme d'annotation")
 
-# ---------------- GOOGLE SHEETS (SEULEMENT SI APIs activées) ----------------
+# ---------------- GOOGLE SHEETS ----------------
 SHEETS_OK = False
 sheet = None
+client = None
 
 try:
     credentials = service_account.Credentials.from_service_account_info(
@@ -94,10 +95,30 @@ def load_data():
     df["comment_id"] = df["text"].apply(lambda x: hashlib.md5(x.encode()).hexdigest())
     return df
 
+# ✅ FONCTION MODIFIÉE : Lit Google Sheets COMME la partie admin
 def load_annotations():
     if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
-    return pd.DataFrame(columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"])
+        local_df = pd.read_csv(ANNOT_FILE, encoding="utf-8")
+    else:
+        local_df = pd.DataFrame()
+    
+    # Récupérer Google Sheets comme dans save_annotation()
+    if SHEETS_OK and sheet:
+        try:
+            records = sheet.get_all_records()
+            if records:
+                sheets_df = pd.DataFrame(records)
+                # Ignorer les lignes avec en-têtes "Annotateur" (format résumé)
+                sheets_df = sheets_df[~sheets_df.apply(lambda row: row.astype(str).str.contains("Annotateur").any(), axis=1)]
+                if not sheets_df.empty and "comment_id" in sheets_df.columns:
+                    sheets_df = sheets_df[['comment_id', 'email', 'label', 'type_abus', 'intensite', 'langue']]
+                    # Fusionner local + sheets
+                    combined = pd.concat([sheets_df, local_df], ignore_index=True)
+                    return combined.drop_duplicates(subset=['comment_id', 'email'])
+        except:
+            pass
+    
+    return local_df
 
 def get_available_comments(data, annotations, email):
     if annotations.empty:
@@ -107,8 +128,11 @@ def get_available_comments(data, annotations, email):
     data["comment_id"] = data["comment_id"].astype(str)
 
     user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
+
     counts = annotations.groupby("comment_id").size()
+
     valid_ids = counts[counts < MAX_ANNOT].index.tolist()
+
     never_annotated = data[~data["comment_id"].isin(counts.index)]
 
     available = pd.concat([
@@ -117,30 +141,92 @@ def get_available_comments(data, annotations, email):
     ])
 
     available = available[~available["comment_id"].isin(user_done)]
+
     return available.reset_index(drop=True)
 
-# ---------------- FONCTION CORRIGÉE ----------------
+# ✅ FONCTION MODIFIÉE : APPEND + résumé (garder votre logique)
 def save_annotation(row):
-    # Sauvegarde locale (inchangée)
+    # Sauvegarde locale
+    annotations = load_annotations()
+    new_row = pd.DataFrame([row])
+    annotations = pd.concat([annotations, new_row], ignore_index=True)
+    annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
+
     if not SHEETS_OK or not sheet:
-        annotations = load_annotations()
-        new_row = pd.DataFrame([row])
-        annotations = pd.concat([annotations, new_row], ignore_index=True)
-        annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
         return
 
-    # GOOGLE SHEETS : APPEND UNIQUEMENT (CORRECTION)
-    sheet.append_row([
-        row["comment_id"],
-        row["email"],
-        row["label"],
-        row["type_abus"],
-        row["intensite"],
-        row["langue"]
-    ])
-# --------------------------------------------------
+    # Récupérer annotations existantes
+    records = sheet.get_all_records()
+    if records:
+        df = pd.DataFrame(records)
+        # Filtrer les lignes résumé (contenant "Annotateur")
+        df = df[~df.apply(lambda row: row.astype(str).str.contains("Annotateur").any(), axis=1)]
+    else:
+        df = pd.DataFrame(columns=["comment_id","email","label","type_abus","intensite","langue"])
 
-# ---------------- UI ----------------
+    # Ajouter nouvelle annotation
+    new_row = pd.DataFrame([row])
+    df = pd.concat([df, new_row], ignore_index=True)
+
+    # Générer résumé (votre logique exacte)
+    data_admin = load_data()
+    summary_list = []
+    grouped = df.groupby("comment_id")
+
+    for cid, group in grouped:
+        match = data_admin.loc[data_admin["comment_id"] == cid, "text"]
+        tweet_text = match.values[0] if not match.empty else ""
+
+        annot_count = len(group)
+        count_na = len(group[group["label"] == "non abusive"])
+        count_a = len(group[group["label"] == "abusive"])
+        final_class = 1 if count_a > count_na else 0
+
+        labels = group["label"].tolist()
+        ann1 = labels[0] if len(labels) > 0 else ""
+        ann2 = labels[1] if len(labels) > 1 else ""
+        ann3 = labels[2] if len(labels) > 2 else ""
+
+        intensites = group["intensite"].tolist()
+        int1 = intensites[0] if len(intensites) > 0 else ""
+        int2 = intensites[1] if len(intensites) > 1 else ""
+        int3 = intensites[2] if len(intensites) > 2 else ""
+
+        langues = group["langue"].tolist()
+        l1 = langues[0] if len(langues) > 0 else ""
+        l2 = langues[1] if len(langues) > 1 else ""
+        l3 = langues[2] if len(langues) > 2 else ""
+
+        abus = group["type_abus"].tolist()
+        a1 = abus[0] if len(abus) > 0 else ""
+        a2 = abus[1] if len(abus) > 1 else ""
+        a3 = abus[2] if len(abus) > 2 else ""
+
+        summary_list.append({
+            "Annotateur": annot_count,
+            "Nbr-NA": count_na,
+            "Nbr-A": count_a,
+            "Class": final_class,
+            "Ann1": ann1,
+            "Ann2": ann2,
+            "Ann3": ann3,
+            "Int1": int1,
+            "Int2": int2,
+            "Int3": int3,
+            "L1": l1,
+            "L2": l2,
+            "L3": l3,
+            "Abus1": a1,
+            "Abus2": a2,
+            "Abus3": a3,
+            "Commentaires": tweet_text
+        })
+
+    summary_df = pd.DataFrame(summary_list)
+    data_to_write = [summary_df.columns.tolist()] + summary_df.values.tolist()
+    sheet.update("A1", data_to_write)
+
+# ---------------- UI (INCHANGÉE) ----------------
 email = st.text_input("📧 Entrez votre email")
 
 if st.session_state.last_email != email:
@@ -239,7 +325,7 @@ if row is not None:
         st.success("✅ Sauvegardé !" + (" (Google Sheets)" if SHEETS_OK else " (local)"))
         st.rerun()
 
-# ---------------- ADMIN SECTION ----------------
+# ---------------- ADMIN SECTION (INCHANGÉE) ----------------
 st.markdown("---")
 
 if email in ADMIN_EMAILS:
