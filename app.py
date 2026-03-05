@@ -215,12 +215,9 @@ def save_annotation(row):
 
     summary_df = pd.DataFrame(summary_list)
 
-    sheet.clear()
+    data_to_write = [summary_df.columns.tolist()] + summary_df.values.tolist()
 
-    sheet.append_row(summary_df.columns.tolist())
-
-    for _, r in summary_df.iterrows():
-        sheet.append_row(r.tolist())
+    sheet.update("A1", data_to_write)
 
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
