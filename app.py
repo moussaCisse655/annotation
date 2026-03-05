@@ -3,18 +3,13 @@ import pandas as pd
 import os
 import hashlib
 import gspread
+import json
 import streamlit as st
 from google.oauth2 import service_account
 
-# récupérer les secrets
-info = dict(st.secrets["gcp_service_account"])
+info = json.loads(st.secrets["gcp_service_account"])
 
-# corriger les retours à la ligne de la clé privée
-info["private_key"] = info["private_key"].replace("\\n", "\n")
-
-# créer les credentials
 credentials = service_account.Credentials.from_service_account_info(info)
-
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
