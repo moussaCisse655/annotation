@@ -146,7 +146,7 @@ def get_available_comments(data, annotations, email):
 
 # ✅ FONCTION MODIFIÉE : APPEND + résumé (garder votre logique)
 def save_annotation(row):
-    # Sauvegarde locale
+    # ---------------- Sauvegarde locale ----------------
     annotations = load_annotations()
     new_row = pd.DataFrame([row])
     annotations = pd.concat([annotations, new_row], ignore_index=True)
@@ -155,76 +155,93 @@ def save_annotation(row):
     if not SHEETS_OK or not sheet:
         return
 
-    # Récupérer annotations existantes
-    records = sheet.get_all_records()
-    if records:
-        df = pd.DataFrame(records)
-        # Filtrer les lignes résumé (contenant "Annotateur")
-        df = df[~df.apply(lambda row: row.astype(str).str.contains("Annotateur").any(), axis=1)]
-    else:
-        df = pd.DataFrame(columns=["comment_id","email","label","type_abus","intensite","langue"])
+    # ---------------- Sauvegarde Google Sheets ----------------
+    try:
+        # Récupérer toutes les lignes existantes
+        records = sheet.get_all_records()
+        if records:
+            df = pd.DataFrame(records)
+            # Supprimer les lignes résumé existantes
+            df = df[~df.apply(lambda row: row.astype(str).str.contains("Annotateur").any(), axis=1)]
+        else:
+            df = pd.DataFrame(columns=["comment_id","email","label","type_abus","intensite","langue"])
 
-    # Ajouter nouvelle annotation
-    new_row = pd.DataFrame([row])
-    df = pd.concat([df, new_row], ignore_index=True)
+        # Vérifier si cette annotation existe déjà pour cet email et comment_id
+        exists = df[(df["comment_id"] == row["comment_id"]) & (df["email"] == row["email"])]
+        if exists.empty:
+            df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
+        else:
+            df.loc[(df["comment_id"] == row["comment_id"]) & (df["email"] == row["email"]), ["label","type_abus","intensite","langue"]] = \
+                row["label"], row["type_abus"], row["intensite"], row["langue"]
 
-    # Générer résumé (votre logique exacte)
-    data_admin = load_data()
-    summary_list = []
-    grouped = df.groupby("comment_id")
+        # ---------------- Créer le résumé ----------------
+        data_admin = load_data()
+        summary_list = []
+        grouped = df.groupby("comment_id")
 
-    for cid, group in grouped:
-        match = data_admin.loc[data_admin["comment_id"] == cid, "text"]
-        tweet_text = match.values[0] if not match.empty else ""
+        for cid, group in grouped:
+            match = data_admin.loc[data_admin["comment_id"] == cid, "text"]
+            tweet_text = match.values[0] if not match.empty else ""
 
-        annot_count = len(group)
-        count_na = len(group[group["label"] == "non abusive"])
-        count_a = len(group[group["label"] == "abusive"])
-        final_class = 1 if count_a > count_na else 0
+            annot_count = len(group)
+            count_na = len(group[group["label"] == "non abusive"])
+            count_a = len(group[group["label"] == "abusive"])
+            final_class = 1 if count_a > count_na else 0
 
-        labels = group["label"].tolist()
-        ann1 = labels[0] if len(labels) > 0 else ""
-        ann2 = labels[1] if len(labels) > 1 else ""
-        ann3 = labels[2] if len(labels) > 2 else ""
+            labels = group["label"].tolist()
+            ann1 = labels[0] if len(labels) > 0 else ""
+            ann2 = labels[1] if len(labels) > 1 else ""
+            ann3 = labels[2] if len(labels) > 2 else ""
 
-        intensites = group["intensite"].tolist()
-        int1 = intensites[0] if len(intensites) > 0 else ""
-        int2 = intensites[1] if len(intensites) > 1 else ""
-        int3 = intensites[2] if len(intensites) > 2 else ""
+            intensites = group["intensite"].tolist()
+            int1 = intensites[0] if len(intensites) > 0 else ""
+            int2 = intensites[1] if len(intensites) > 1 else ""
+            int3 = intensites[2] if len(intensites) > 2 else ""
 
-        langues = group["langue"].tolist()
-        l1 = langues[0] if len(langues) > 0 else ""
-        l2 = langues[1] if len(langues) > 1 else ""
-        l3 = langues[2] if len(langues) > 2 else ""
+            langues = group["langue"].tolist()
+            l1 = langues[0] if len(langues) > 0 else ""
+            l2 = langues[1] if len(langues) > 1 else ""
+            l3 = langues[2] if len(langues) > 2 else ""
 
-        abus = group["type_abus"].tolist()
-        a1 = abus[0] if len(abus) > 0 else ""
-        a2 = abus[1] if len(abus) > 1 else ""
-        a3 = abus[2] if len(abus) > 2 else ""
+            abus = group["type_abus"].tolist()
+            a1 = abus[0] if len(abus) > 0 else ""
+            a2 = abus[1] if len(abus) > 1 else ""
+            a3 = abus[2] if len(abus) > 2 else ""
 
-        summary_list.append({
-            "Annotateur": annot_count,
-            "Nbr-NA": count_na,
-            "Nbr-A": count_a,
-            "Class": final_class,
-            "Ann1": ann1,
-            "Ann2": ann2,
-            "Ann3": ann3,
-            "Int1": int1,
-            "Int2": int2,
-            "Int3": int3,
-            "L1": l1,
-            "L2": l2,
-            "L3": l3,
-            "Abus1": a1,
-            "Abus2": a2,
-            "Abus3": a3,
-            "Commentaires": tweet_text
-        })
+            summary_list.append({
+                "Annotateur": annot_count,
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
+                "Class": final_class,
+                "Ann1": ann1,
+                "Ann2": ann2,
+                "Ann3": ann3,
+                "Int1": int1,
+                "Int2": int2,
+                "Int3": int3,
+                "L1": l1,
+                "L2": l2,
+                "L3": l3,
+                "Abus1": a1,
+                "Abus2": a2,
+                "Abus3": a3,
+                "Commentaires": tweet_text
+            })
 
-    summary_df = pd.DataFrame(summary_list)
-    data_to_write = [summary_df.columns.tolist()] + summary_df.values.tolist()
-    sheet.update("A1", data_to_write)
+        summary_df = pd.DataFrame(summary_list)
+
+        # Effacer l'ancien contenu
+        sheet.clear()
+
+        # Écrire d'abord les annotations ligne par ligne
+        if not df.empty:
+            sheet.update([df.columns.tolist()] + df.values.tolist())
+        # Puis le résumé en dessous
+        if not summary_df.empty:
+            sheet.append_rows([summary_df.columns.tolist()] + summary_df.values.tolist(), value_input_option="USER_ENTERED")
+
+    except Exception as e:
+        st.warning(f"Erreur Google Sheets : {str(e)[:80]}")
 
 # ---------------- UI (INCHANGÉE) ----------------
 email = st.text_input("📧 Entrez votre email")
