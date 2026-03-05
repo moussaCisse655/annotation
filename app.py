@@ -13,42 +13,9 @@ ADMIN_EMAILS = ["cissemoussa681@gmail.com", "kdrame@univ-zig.sn"]
 
 st.set_page_config(page_title="Plateforme d'annotation", layout="centered")
 
-# ---------------- GOOGLE SHEETS (OPTIMISÉ) ----------------
-@st.cache_resource
-def init_sheets():
-    """Initialise la connexion Google Sheets une seule fois"""
-    credentials = service_account.Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"]
-    )
-    
-    scoped_credentials = credentials.with_scopes([
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ])
-    
-    client = gspread.authorize(scoped_credentials)
-    sheet = client.open("Annotations").sheet1
-    
-    # Vérifier les headers
-    headers = ["comment_id", "email", "label", "type_abus", "intensite", "langue", "timestamp"]
-    current_headers = sheet.row_values(1)
-    if current_headers != headers:
-        sheet.clear()
-        sheet.append_row(headers)
-    
-    return sheet
-
-# Initialiser Sheets
-try:
-    sheet = init_sheets()
-    SHEETS_OK = True
-except Exception as e:
-    st.error(f"❌ Erreur Google Sheets: {str(e)[:100]}...")
-    st.info("💡 Vérifiez que le service account a accès au Sheet 'Annotations'")
-    SHEETS_OK = False
-
 st.title("📝 Plateforme d'annotation")
 
+# ---------------- GUIDE ----------------
 with st.expander("📘 Guide d'annotation (Obligatoire)"):
     st.markdown("""
 ### Objectif
@@ -60,8 +27,8 @@ Votre rôle est d'identifier si un commentaire est abusif et, si oui, préciser 
 - **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
 
 ### Types d'abus (à choisir uniquement si "abusive")
-- **Insulte** : mot offensant ou dégradant visant une personne (ex: idiot, imbécile, nul, etc.)
-- **Menace** : expression d'une intention de nuire physiquement ou moralement
+- **Insulte** : mot offensant ou dégradant visant une personne  
+- **Menace** : expression d'une intention de nuire physiquement ou moralement  
 - **Harcèlement** : attaques répétées, intimidation ou pression continue
 - **Haine** : discours visant un groupe basé sur la religion, l'ethnie, etc.
 - **Discrimination** : exclusion, traitement injuste basé sur l'identité
@@ -80,24 +47,30 @@ Votre rôle est d'identifier si un commentaire est abusif et, si oui, préciser 
 
 guide_ok = st.checkbox("J'ai lu et compris le guide d'annotation")
 
-# ---------------- SESSION STATE ----------------
+# ---------------- SESSION STATE SIMPLIFIÉ ----------------
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 if "last_email" not in st.session_state:
     st.session_state.last_email = ""
-if "keys" not in st.session_state:
-    st.session_state.keys = {"label": 0, "type": 0, "intensite": 0, "langue": 0}
+if "label_key" not in st.session_state:
+    st.session_state.label_key = 0
+if "type_key" not in st.session_state:
+    st.session_state.type_key = 0
+if "intensite_key" not in st.session_state:
+    st.session_state.intensite_key = 0
+if "langue_key" not in st.session_state:
+    st.session_state.langue_key = 0
 
-# ---------------- LOAD DATA ----------------
+# ---------------- FONCTIONS DATA ----------------
 @st.cache_data
 def load_data():
     if not os.path.exists(DATA_FILE):
-        st.error(f"Fichier {DATA_FILE} manquant")
+        st.error(f"❌ Fichier {DATA_FILE} manquant. Ajoutez-le à la racine.")
         st.stop()
     
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig")
     if "text" not in df.columns:
-        st.error("CSV doit contenir colonne 'text'")
+        st.error("❌ CSV doit contenir colonne 'text'")
         st.stop()
     
     df["text"] = df["text"].astype(str).str.strip()
@@ -111,20 +84,12 @@ def load_annotations():
         return pd.read_csv(ANNOT_FILE, encoding="utf-8")
     return pd.DataFrame(columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"])
 
-def save_annotation(row):
-    if not SHEETS_OK:
-        # Sauvegarde locale si Sheets KO
-        annotations = load_annotations()
-        new_row = pd.DataFrame([row])
-        annotations = pd.concat([annotations, new_row], ignore_index=True)
-        annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
-        return
-    
-    sheet.append_row([
-        row["comment_id"], row["email"], row["label"], 
-        row["type_abus"], row["intensite"], row["langue"],
-        pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
-    ])
+def save_annotation_local(row):
+    """Sauvegarde locale (Sheets OFF)"""
+    annotations = load_annotations()
+    new_row = pd.DataFrame([row])
+    annotations = pd.concat([annotations, new_row], ignore_index=True)
+    annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
 def get_available_comments(data, annotations, email):
     if annotations.empty:
@@ -155,6 +120,9 @@ if not guide_ok:
     st.warning("📖 Lisez et acceptez le guide avant de commencer")
     st.stop()
 
+# Mode local (Sheets OFF pour l'instant)
+st.warning("🟡 **MODE LOCAL** - Google Sheets désactivé (API à activer)")
+
 data = load_data()
 annotations = load_annotations()
 
@@ -183,65 +151,67 @@ if row is not None:
     st.markdown("### 💬 Commentaire à annoter")
     st.info(row["text"])
     
-    with st.form("annotation_form"):
-        langue = st.multiselect(
-            "Langue", ["Français", "Wolof", "Français-Wolof"],
-            key=f"langue_{st.session_state.keys['langue']}"
-        )
-        
-        label = st.selectbox(
-            "Ce commentaire est-il abusif ?",
-            ["Choisir...", "abusive", "non abusive"],
-            key=f"label_{st.session_state.keys['label']}"
-        )
-        
+    langue = st.multiselect(
+        "Langue", ["Français", "Wolof", "Français-Wolof"],
+        key=f"langue_{st.session_state.langue_key}"
+    )
+    
+    label = st.selectbox(
+        "Ce commentaire est-il abusif ?",
+        ["Choisir...", "abusive", "non abusive"],
+        key=f"label_{st.session_state.label_key}"
+    )
+    
+    type_abus = []
+    intensite = []
+    
+    if label == "abusive":
         type_abus = st.multiselect(
             "Type(s) d'abus", 
             ["Insulte", "Haine", "Menace", "Harcèlement", "Discrimination", "Autre"],
-            key=f"type_{st.session_state.keys['type']}"
+            key=f"type_{st.session_state.type_key}"
         )
-        
         intensite = st.multiselect(
             "Intensité", ["faible", "moyenne", "élevée"],
-            key=f"intensite_{st.session_state.keys['intensite']}"
+            key=f"intensite_{st.session_state.intensite_key}"
         )
+    
+    if st.button("💾 Enregistrer et suivant", use_container_width=True):
+        if label == "Choisir...":
+            st.error("❌ Choisissez si abusive ou non abusive")
+            st.stop()
+        if not langue:
+            st.error("❌ Sélectionnez au moins une langue")
+            st.stop()
+        if "Français-Wolof" in langue and len(langue) > 1:
+            st.error("❌ Français-Wolof = pas d'autres langues")
+            st.stop()
         
-        submit = st.form_submit_button("💾 Enregistrer et suivant", use_container_width=True)
+        save_annotation_local({
+            "comment_id": row["comment_id"],
+            "email": email,
+            "label": label,
+            "type_abus": ", ".join(type_abus) if label == "abusive" else "",
+            "intensite": ", ".join(intensite) if label == "abusive" else "",
+            "langue": ", ".join(langue)
+        })
         
-        if submit:
-            if label == "Choisir...":
-                st.error("❌ Choisissez si abusive ou non abusive")
-                st.stop()
-            if not langue:
-                st.error("❌ Sélectionnez au moins une langue")
-                st.stop()
-            if "Français-Wolof" in langue and len(langue) > 1:
-                st.error("❌ Français-Wolof = pas d'autres langues")
-                st.stop()
-            
-            save_annotation({
-                "comment_id": row["comment_id"],
-                "email": email,
-                "label": label,
-                "type_abus": ", ".join(type_abus) if label == "abusive" else "",
-                "intensite": ", ".join(intensite) if label == "abusive" else "",
-                "langue": ", ".join(langue)
-            })
-            
-            # Incrémenter keys et index
-            for key in st.session_state.keys:
-                st.session_state.keys[key] += 1
-            st.session_state.idx += 1
-            
-            st.success("✅ Annotation enregistrée !")
-            st.rerun()
+        # Reset keys et next
+        st.session_state.label_key += 1
+        st.session_state.type_key += 1
+        st.session_state.intensite_key += 1
+        st.session_state.langue_key += 1
+        st.session_state.idx += 1
+        
+        st.success("✅ Annotation enregistrée localement !")
+        st.rerun()
 
 # ---------------- ADMIN ----------------
 st.markdown("---")
 if email in ADMIN_EMAILS:
     st.subheader("🔐 Zone Admin")
     
-    if st.button("🔄 Recharger données", key="refresh"):
+    if st.button("🔄 Recharger données"):
         st.cache_data.clear()
         st.rerun()
     
@@ -251,7 +221,6 @@ if email in ADMIN_EMAILS:
     if annotations.empty:
         st.info("Aucune annotation")
     else:
-        # Résumé complet
         summary_list = []
         grouped = annotations.groupby("comment_id")
         
@@ -279,21 +248,11 @@ if email in ADMIN_EMAILS:
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🗑️ Supprimer annotations locales"):
+            if st.button("🗑️ Reset annotations"):
                 if os.path.exists(ANNOT_FILE):
                     os.remove(ANNOT_FILE)
-                    st.success("Local supprimé")
-                    st.rerun()
-        
-        with col2:
-            if SHEETS_OK and st.button("🔄 Synchroniser Sheets → Local"):
-                # Récupérer depuis Sheets
-                all_rows = sheet.get_all_records()
-                if all_rows:
-                    df_sheets = pd.DataFrame(all_rows)
-                    df_sheets.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
-                    st.success(f"Sync OK: {len(df_sheets)} lignes")
+                    st.success("Reset OK")
                     st.rerun()
 
 st.markdown("---")
-st.caption("👨‍💻 Moussa Cissé - Mémoire NLP Annotation")
+st.caption("👨‍💻 Moussa Cissé - Mémoire NLP Annotation (Mode Local)")
