@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import hashlib
 import gspread
-from google.oauth2 import service_account
+from google.oauth2 import service_account 
 
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
