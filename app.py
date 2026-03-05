@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import hashlib
-
+import gspread
+from google.oauth2 import service_account
 
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
@@ -11,6 +12,7 @@ MAX_ANNOT = 3
 ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
+
 
 
 
@@ -77,6 +79,19 @@ Ne tenez pas compte de votre opinion personnelle.
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
+# -------- GOOGLE SHEETS CONNECTION --------
+
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+
+scoped_credentials = credentials.with_scopes(
+    ["https://www.googleapis.com/auth/spreadsheets"]
+)
+
+client = gspread.authorize(scoped_credentials)
+
+sheet = client.open("Annotations").sheet1
 
 # ---------------- SESSION STATE INIT ----------------
 if "idx" not in st.session_state:
@@ -130,12 +145,14 @@ def load_annotations():
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
-    df = pd.DataFrame([row])
-    if not os.path.exists(ANNOT_FILE):
-        df.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
-    else:
-        df.to_csv(ANNOT_FILE, mode="a", header=False, index=False, encoding="utf-8")
-
+    sheet.append_row([
+        row["comment_id"],
+        row["email"],
+        row["label"],
+        row["type_abus"],
+        row["intensite"],
+        row["langue"]
+    ])
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
 
