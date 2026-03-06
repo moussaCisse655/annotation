@@ -120,13 +120,16 @@ def load_data():
 
 # ---------------- LOAD ANNOTATIONS ----------------
 def load_annotations():
-    if os.path.exists(ANNOT_FILE):
-        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
-    else:
-        return pd.DataFrame(
-            columns=["comment_id", "email", "label", "type_abus", "intensite", "langue"]
-        )
-
+    if not os.path.exists(ANNOT_FILE) or os.stat(ANNOT_FILE).st_size == 0:
+        return pd.DataFrame(columns=[
+            "video_id",
+            "Annotateur1","Annotateur2","Annotateur3",
+            "Intensite1","Intensite2","Intensite3",
+            "Langue1","Langue2","Langue3",
+            "Commentaire1","Commentaire2","Commentaire3"
+        ])
+    
+    return pd.read_csv(ANNOT_FILE, encoding="utf-8")
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
