@@ -34,7 +34,7 @@ except Exception as e:
     st.info("Activez Google Drive API + Sheets API dans GCP")
 
 # ---------------- GUIDE ----------------
-st.title("📝 Plateforme d'annotation")
+# st.title("📝 Plateforme d'annotation")
 
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
