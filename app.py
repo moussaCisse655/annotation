@@ -38,20 +38,19 @@ with st.expander("📘 Guide d'annotation (Obligatoire)"):
     st.markdown("""
 ### Objectif
 Cette plateforme sert à annoter des commentaires pour un memoire de recherche en NLP.
-Votre rôle est d'identifier si un commentaire est abusif et, si oui, préciser son type et son intensité.
 
 ### Abusive / Non abusive
-- **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
-- **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
+- **abusive** : attaque contre une personne ou un groupe
+- **non abusive** : commentaire neutre
 
 ### Types d'abus
-- **Insulte**, **Menace**, **Harcèlement**, **Haine**, **Discrimination**, **Autre**
+Insulte, Menace, Harcèlement, Haine, Discrimination, Autre
 
 ### Intensité
-- **faible**, **moyenne**, **élevée**
+faible, moyenne, élevée
 
 ### Langue
-- Français, Wolof, Français-Wolof
+Français, Wolof, Français-Wolof
 """)
 
 guide_ok = st.checkbox("J'ai lu et compris le guide d'annotation")
@@ -71,15 +70,20 @@ if "langue_key" not in st.session_state:
     st.session_state.langue_key = 0
 
 # ---------------- LOAD DATA ----------------
-@st.cache_data
 def load_data():
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig", engine="python")
+
     if "text" not in df.columns:
         st.error("Le fichier CSV doit contenir une colonne 'text'")
         st.stop()
+
     df["text"] = df["text"].astype(str).str.strip()
     df = df[df["text"].str.split().str.len() >= 3].reset_index(drop=True)
-    df["comment_id"] = df["text"].apply(lambda x: hashlib.md5(x.encode()).hexdigest())
+
+    df["comment_id"] = df["text"].apply(
+        lambda x: hashlib.md5(x.encode()).hexdigest()
+    )
+
     return df
 
 # ---------------- GOOGLE SHEETS FUNCTIONS ----------------
@@ -87,33 +91,46 @@ def get_or_create_sheet(name, cols):
     try:
         ws = client.open("Annotations").worksheet(name)
     except gspread.WorksheetNotFound:
-        ws = client.open("Annotations").add_worksheet(title=name, rows="1000", cols=str(len(cols)))
+        ws = client.open("Annotations").add_worksheet(
+            title=name,
+            rows="1000",
+            cols=str(len(cols))
+        )
         ws.update([cols])
     return ws
 
-# ---------------- SAVE ANNOTATION ----------------
+
 def save_annotation(row):
 
-    # LOCAL
+    # -------- LOCAL --------
     if os.path.exists(ANNOT_FILE):
         annotations = pd.read_csv(ANNOT_FILE, encoding="utf-8")
     else:
         annotations = pd.DataFrame()
 
-    annotations = pd.concat([annotations, pd.DataFrame([row])], ignore_index=True)
+    annotations = pd.concat(
+        [annotations, pd.DataFrame([row])],
+        ignore_index=True
+    )
+
     annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
     if not SHEETS_OK or not client:
         return
 
     try:
+
+        # -------- BRUT --------
         raw_cols = ["comment_id","email","label","type_abus","intensite","langue"]
         raw_sheet = get_or_create_sheet("Brut", raw_cols)
 
         records = raw_sheet.get_all_records()
         df_raw = pd.DataFrame(records) if records else pd.DataFrame(columns=raw_cols)
 
-        exists = df_raw[(df_raw["comment_id"]==row["comment_id"]) & (df_raw["email"]==row["email"])]
+        exists = df_raw[
+            (df_raw["comment_id"]==row["comment_id"]) &
+            (df_raw["email"]==row["email"])
+        ]
 
         if exists.empty:
             df_raw = pd.concat([df_raw, pd.DataFrame([row])], ignore_index=True)
@@ -127,11 +144,87 @@ def save_annotation(row):
         raw_sheet.clear()
         raw_sheet.update([df_raw.columns.tolist()] + df_raw.values.tolist())
 
+        # -------- SUMMARY --------
+        summary_cols = ["Annotateur","Nbr-NA","Nbr-A","Class",
+                        "Ann1","Ann2","Ann3",
+                        "Int1","Int2","Int3",
+                        "L1","L2","L3",
+                        "Abus1","Abus2","Abus3",
+                        "Commentaires"]
+
+        summary_sheet = get_or_create_sheet("Résumé", summary_cols)
+
+        data_admin = load_data()
+        summary_list = []
+
+        grouped = df_raw.groupby("comment_id")
+
+        for cid, group in grouped:
+
+            tweet = data_admin[data_admin["comment_id"] == cid]
+
+            if tweet.empty:
+                continue
+
+            tweet_text = tweet.iloc[0]["text"]
+
+            group = group.head(3)
+
+            labels = group["label"].tolist()
+            intensites = group["intensite"].tolist()
+            langues = group["langue"].tolist()
+            abus = group["type_abus"].tolist()
+
+            while len(labels) < 3:
+                labels.append("")
+            while len(intensites) < 3:
+                intensites.append("")
+            while len(langues) < 3:
+                langues.append("")
+            while len(abus) < 3:
+                abus.append("")
+
+            count_na = labels.count("non abusive")
+            count_a = labels.count("abusive")
+
+            final_class = 1 if count_a > count_na else 0
+
+            summary_list.append({
+                "Annotateur": len(group),
+                "Nbr-NA": count_na,
+                "Nbr-A": count_a,
+                "Class": final_class,
+
+                "Ann1": labels[0],
+                "Ann2": labels[1],
+                "Ann3": labels[2],
+
+                "Int1": intensites[0],
+                "Int2": intensites[1],
+                "Int3": intensites[2],
+
+                "L1": langues[0],
+                "L2": langues[1],
+                "L3": langues[2],
+
+                "Abus1": abus[0],
+                "Abus2": abus[1],
+                "Abus3": abus[2],
+
+                "Commentaires": tweet_text
+            })
+
+        summary_df = pd.DataFrame(summary_list)
+
+        summary_sheet.clear()
+        summary_sheet.update(
+            [summary_df.columns.tolist()] + summary_df.values.tolist()
+        )
+
     except Exception as e:
         st.warning(f"Erreur Google Sheets : {str(e)[:80]}")
 
-# ---------------- LOAD ANNOTATIONS ----------------
-@st.cache_data(ttl=5)
+
 def load_annotations():
 
     local_df = pd.read_csv(ANNOT_FILE, encoding="utf-8") if os.path.exists(ANNOT_FILE) else pd.DataFrame()
@@ -144,6 +237,7 @@ def load_annotations():
             )
 
             records = raw_sheet.get_all_records()
+
             sheets_df = pd.DataFrame(records)
 
             if not sheets_df.empty:
@@ -155,27 +249,73 @@ def load_annotations():
 
     return local_df
 
-# ---------------- AVAILABLE COMMENTS ----------------
+
 def get_available_comments(data, annotations, email):
 
     if annotations.empty:
         return data.reset_index(drop=True)
 
-    user_done = annotations[annotations["email"] == email]["comment_id"]
+    annotations = annotations.copy()
+
+    annotations["comment_id"] = annotations["comment_id"].astype(str)
+    data["comment_id"] = data["comment_id"].astype(str)
+
+    user_done = annotations[annotations["email"] == email]["comment_id"].tolist()
 
     counts = annotations.groupby("comment_id").size()
 
-    valid_ids = counts[counts < MAX_ANNOT].index
+    valid_ids = counts[counts < MAX_ANNOT].index.tolist()
 
-    available = data[
-        (~data["comment_id"].isin(user_done)) &
-        (
-            ~data["comment_id"].isin(counts.index) |
-            data["comment_id"].isin(valid_ids)
-        )
-    ]
+    available_list = []
+
+    for _, row in data.iterrows():
+
+        cid = row["comment_id"]
+
+        if cid not in counts.index:
+            available_list.append(row)
+
+        elif cid in valid_ids:
+            available_list.append(row)
+
+    available = pd.DataFrame(available_list)
+
+    available = available[~available["comment_id"].isin(user_done)]
 
     return available.reset_index(drop=True)
+
+
+def load_summary_from_sheets():
+
+    if not SHEETS_OK or not client:
+        return pd.DataFrame()
+
+    summary_cols = ["Annotateur","Nbr-NA","Nbr-A","Class",
+                    "Ann1","Ann2","Ann3",
+                    "Int1","Int2","Int3",
+                    "L1","L2","L3",
+                    "Abus1","Abus2","Abus3",
+                    "Commentaires"]
+
+    try:
+        summary_sheet = get_or_create_sheet("Résumé", summary_cols)
+
+        records = summary_sheet.get_all_records()
+
+        if not records:
+            return pd.DataFrame(columns=summary_cols)
+
+        df = pd.DataFrame(records)
+
+        for col in summary_cols:
+            if col not in df.columns:
+                df[col] = ""
+
+        return df[summary_cols]
+
+    except Exception as e:
+        st.warning(f"Erreur Google Sheets : {str(e)[:80]}")
+        return pd.DataFrame(columns=summary_cols)
 
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
@@ -194,7 +334,6 @@ if not guide_ok:
 
 data = load_data()
 annotations = load_annotations()
-
 available = get_available_comments(data, annotations, email)
 
 if available.empty:
@@ -227,7 +366,6 @@ if row is not None:
     intensite = []
 
     if label == "abusive":
-
         type_abus = st.multiselect(
             "Type(s) d'abus",
             ["Insulte","Haine","Menace","Harcèlement","Discrimination","Autre"],
@@ -270,8 +408,6 @@ if row is not None:
 
         st.success("✅ Sauvegardé !" + (" (Google Sheets)" if SHEETS_OK else " (local)"))
 
-        st.cache_data.clear()
-
         st.rerun()
 
 # ---------------- ADMIN ----------------
@@ -281,16 +417,16 @@ if email in ADMIN_EMAILS:
 
     st.subheader("🔐 Zone Admin – Résumé Annotation")
 
-    annotations = load_annotations()
+    summary_df = load_summary_from_sheets()
 
-    if annotations.empty:
-        st.info("Aucune annotation disponible.")
+    if summary_df.empty:
+        st.info("Aucune annotation disponible dans Google Sheets.")
     else:
-        st.dataframe(annotations)
+        st.dataframe(summary_df)
 
         st.download_button(
             label="⬇️ Télécharger Annotation_format.csv",
-            data=annotations.to_csv(index=False, encoding="utf-8"),
+            data=summary_df.to_csv(index=False, encoding="utf-8"),
             file_name="Annotation_format.csv",
             mime="text/csv"
         )
