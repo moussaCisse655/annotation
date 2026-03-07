@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import hashlib
 
-
 # ---------------- CONFIG ----------------
 DATA_FILE = "data.csv"
 ANNOT_FILE = "annotations.csv"
@@ -12,10 +11,20 @@ ADMIN_EMAIL = "cissemoussa681@gmail.com"
 
 st.set_page_config(page_title="Plateforme d’annotation", layout="centered")
 
-
+# créer fichier annotation si absent
+if not os.path.exists(ANNOT_FILE):
+    pd.DataFrame(columns=[
+        "comment_id",
+        "email",
+        "label",
+        "type_abus",
+        "intensite",
+        "langue"
+    ]).to_csv(ANNOT_FILE, index=False)
 
 st.title("📝 Plateforme d'annotation")
 
+# ---------------- GUIDE ----------------
 with st.expander("📘 Guide d’annotation (Obligatoire)"):
     st.markdown("""
 ###  Objectif
@@ -26,8 +35,8 @@ Votre rôle est d’identifier si un commentaire est abusif et, si oui, précise
 
 ###  Abusive / Non abusive
 
-- **abusive** : le commentaire contient une attaque dirigée contre une personne ou un groupe.
-- **non abusive** : commentaire neutre, informatif ou critique sans attaque personnelle.
+- *abusive* : le commentaire contient une attaque dirigée contre une personne ou un groupe.
+- *non abusive* : commentaire neutre, informatif ou critique sans attaque personnelle.
 
 ---
 
@@ -35,19 +44,19 @@ Votre rôle est d’identifier si un commentaire est abusif et, si oui, précise
 
 Choisissez le type correspondant au contenu du commentaire :
 
-- **Insulte** : mot offensant ou dégradant visant une personne  
+- *Insulte* : mot offensant ou dégradant visant une personne  
   (ex: idiot, imbécile, nul, etc.)
 
-- **Menace** : expression d’une intention de nuire physiquement ou moralement  
+- *Menace* : expression d’une intention de nuire physiquement ou moralement  
   (ex: je vais te frapper, tu vas payer, etc.)
 
-- **Harcèlement** : attaques répétées, intimidation ou pression continue contre une personne
+- *Harcèlement* : attaques répétées, intimidation ou pression continue contre une personne
 
-- **Haine** : discours visant un groupe basé sur la religion, l’ethnie, la nationalité, le genre, etc.
+- *Haine* : discours visant un groupe basé sur la religion, l’ethnie, la nationalité, le genre, etc.
 
-- **Discrimination** : exclusion, traitement injuste ou dévalorisation d’un groupe ou individu à cause de son identité
+- *Discrimination* : exclusion, traitement injuste ou dévalorisation d’un groupe ou individu à cause de son identité
 
-- **Autre** : abus qui ne correspond à aucune des catégories ci-dessus
+- *Autre* : abus qui ne correspond à aucune des catégories ci-dessus
 
  Si plusieurs types apparaissent dans le même commentaire, vous pouvez en sélectionner plusieurs.
 
@@ -55,9 +64,9 @@ Choisissez le type correspondant au contenu du commentaire :
 
 ###  Intensité
 
-- **faible** : attaque légère ou indirecte
-- **moyenne** : attaque claire et explicite
-- **élevée** : attaque grave, violente ou très agressive
+- *faible* : attaque légère ou indirecte
+- *moyenne* : attaque claire et explicite
+- *élevée* : attaque grave, violente ou très agressive
 
 ---
 
@@ -77,8 +86,7 @@ Ne tenez pas compte de votre opinion personnelle.
 
 guide_ok = st.checkbox("J’ai lu et compris le guide d’annotation")
 
-
-# ---------------- SESSION STATE INIT ----------------
+# ---------------- SESSION STATE ----------------
 if "idx" not in st.session_state:
     st.session_state.idx = 0
 
@@ -93,13 +101,14 @@ if "type_key" not in st.session_state:
 
 if "intensite_key" not in st.session_state:
     st.session_state.intensite_key = 0
-    
+
 if "langue_key" not in st.session_state:
     st.session_state.langue_key = 0
 
 
 # ---------------- LOAD DATA ----------------
 def load_data():
+
     df = pd.read_csv(DATA_FILE, encoding="utf-8-sig", engine="python")
 
     if "text" not in df.columns:
@@ -110,7 +119,6 @@ def load_data():
     df = df[df["text"].str.split().str.len() >= 3]
     df = df.reset_index(drop=True)
 
-    # ✅ ID unique basé sur le contenu du texte
     df["comment_id"] = df["text"].apply(
         lambda x: hashlib.md5(x.encode()).hexdigest()
     )
@@ -120,24 +128,41 @@ def load_data():
 
 # ---------------- LOAD ANNOTATIONS ----------------
 def load_annotations():
-    if not os.path.exists(ANNOT_FILE) or os.stat(ANNOT_FILE).st_size == 0:
+
+    if not os.path.exists(ANNOT_FILE):
         return pd.DataFrame(columns=[
-            "video_id",
-            "Annotateur1","Annotateur2","Annotateur3",
-            "Intensite1","Intensite2","Intensite3",
-            "Langue1","Langue2","Langue3",
-            "Commentaire1","Commentaire2","Commentaire3"
+            "comment_id","email","label","type_abus","intensite","langue"
         ])
-    
-    return pd.read_csv(ANNOT_FILE, encoding="utf-8")
+
+    if os.path.getsize(ANNOT_FILE) == 0:
+        return pd.DataFrame(columns=[
+            "comment_id","email","label","type_abus","intensite","langue"
+        ])
+
+    try:
+        return pd.read_csv(ANNOT_FILE, encoding="utf-8")
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame(columns=[
+            "comment_id","email","label","type_abus","intensite","langue"
+        ])
+
 
 # ---------------- SAVE ----------------
 def save_annotation(row):
+
     df = pd.DataFrame([row])
-    if not os.path.exists(ANNOT_FILE):
+
+    if not os.path.exists(ANNOT_FILE) or os.path.getsize(ANNOT_FILE) == 0:
         df.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
     else:
-        df.to_csv(ANNOT_FILE, mode="a", header=False, index=False, encoding="utf-8")
+        df.to_csv(
+            ANNOT_FILE,
+            mode="a",
+            header=False,
+            index=False,
+            encoding="utf-8"
+        )
+
 
 # ---------------- LOGIC ----------------
 def get_available_comments(data, annotations, email):
@@ -147,15 +172,12 @@ def get_available_comments(data, annotations, email):
 
     annotations["comment_id"] = annotations["comment_id"].astype(str)
 
-    # Nombre total d’annotations par commentaire
     total_count = annotations["comment_id"].value_counts()
 
-    # Commentaires déjà annotés par l'utilisateur
     user_annotated = annotations[
         annotations["email"] == email
     ]["comment_id"].unique()
 
-    # Filtrage vectorisé (beaucoup plus rapide)
     mask = (
         data["comment_id"].map(total_count).fillna(0) < MAX_ANNOT
     ) & (
@@ -163,6 +185,7 @@ def get_available_comments(data, annotations, email):
     )
 
     return data[mask]
+
 
 # ---------------- UI ----------------
 email = st.text_input("📧 Entrez votre email")
@@ -181,17 +204,6 @@ if not guide_ok:
 
 data = load_data()
 annotations = load_annotations()
-
-# ✅ Nettoyage automatique des annotations d’un ancien dataset
-if not annotations.empty:
-    annotations["comment_id"] = annotations["comment_id"].astype(str)
-    data["comment_id"] = data["comment_id"].astype(str)
-
-    annotations = annotations[
-        annotations["comment_id"].isin(data["comment_id"])
-    ]
-
-    annotations.to_csv(ANNOT_FILE, index=False, encoding="utf-8")
 
 available = get_available_comments(data, annotations, email)
 
@@ -230,6 +242,7 @@ if row is not None:
     intensite = []
 
     if label == "abusive":
+
         type_abus = st.multiselect(
             "Type(s) d’abus",
             ["Insulte", "Haine", "Menace", "Harcèlement", "Discrimination", "Autre"],
@@ -245,7 +258,7 @@ if row is not None:
     if st.button("💾 Enregistrer et suivant"):
 
         if label == "Choisir une option":
-            st.warning("Veuillez choisir si le commentaire est abusive ou non abusive.")
+            st.warning("Veuillez choisir une option.")
             st.stop()
 
         if "Français-Wolof" in langue and len(langue) > 1:
@@ -265,6 +278,7 @@ if row is not None:
             "langue": ", ".join(langue)
         })
 
+        st.session_state.idx += 1
         st.session_state.label_key += 1
         st.session_state.type_key += 1
         st.session_state.intensite_key += 1
@@ -273,10 +287,10 @@ if row is not None:
         st.rerun()
 
 
-# ---------------- ADMIN SECTION ----------------
+# ---------------- ADMIN ----------------
 st.markdown("---")
 
-ADMIN_EMAILS = ["cissemoussa681@gmail.com", "kdrame@univ-zig.sn"]  # ajouter d'autres admins ici 
+ADMIN_EMAILS = ["cissemoussa681@gmail.com","kdrame@univ-zig.sn"]
 
 if email in ADMIN_EMAILS:
 
@@ -301,10 +315,7 @@ if email in ADMIN_EMAILS:
                 data_admin["comment_id"] == cid, "text"
             ]
 
-            if not match.empty:
-                tweet_text = match.values[0]
-            else:
-                tweet_text = "Commentaire introuvable (ID absent du dataset)"
+            tweet_text = match.values[0] if not match.empty else ""
 
             annot_count = len(group)
             count_na = len(group[group["label"] == "non abusive"])
@@ -313,73 +324,44 @@ if email in ADMIN_EMAILS:
             final_class = 1 if count_a > count_na else 0
 
             labels = group["label"].tolist()
-
-            ann1 = labels[0] if len(labels) > 0 else ""
-            ann2 = labels[1] if len(labels) > 1 else ""
-            ann3 = labels[2] if len(labels) > 2 else ""
-
-            # -------- Intensité individuelle --------
             intensites = group["intensite"].tolist()
-
-            intensite1 = intensites[0] if len(intensites) > 0 else ""
-            intensite2 = intensites[1] if len(intensites) > 1 else ""
-            intensite3 = intensites[2] if len(intensites) > 2 else ""
-
-            # -------- Langue individuelle --------
             langues = group["langue"].tolist()
-
-            langue1 = langues[0] if len(langues) > 0 else ""
-            langue2 = langues[1] if len(langues) > 1 else ""
-            langue3 = langues[2] if len(langues) > 2 else ""
-
-            # -------- Type d'abus individuel --------
             abus = group["type_abus"].tolist()
-
-            abus1 = abus[0] if len(abus) > 0 else ""
-            abus2 = abus[1] if len(abus) > 1 else ""
-            abus3 = abus[2] if len(abus) > 2 else ""
 
             summary_list.append({
                 "Annotateur": annot_count,
                 "Nbr-NA": count_na,
                 "Nbr-A": count_a,
                 "Class": final_class,
-                "Ann1": ann1,
-                "Ann2": ann2,
-                "Ann3": ann3,
-                "Int1": intensite1,
-                "Int2": intensite2,
-                "Int3": intensite3,
-                "L1": langue1,
-                "L2": langue2,
-                "L3": langue3,
-                "Abus1": abus1,
-                "Abus2": abus2,
-                "Abus3": abus3,
+                "Ann1": labels[0] if len(labels)>0 else "",
+                "Ann2": labels[1] if len(labels)>1 else "",
+                "Ann3": labels[2] if len(labels)>2 else "",
+                "Int1": intensites[0] if len(intensites)>0 else "",
+                "Int2": intensites[1] if len(intensites)>1 else "",
+                "Int3": intensites[2] if len(intensites)>2 else "",
+                "L1": langues[0] if len(langues)>0 else "",
+                "L2": langues[1] if len(langues)>1 else "",
+                "L3": langues[2] if len(langues)>2 else "",
+                "Abus1": abus[0] if len(abus)>0 else "",
+                "Abus2": abus[1] if len(abus)>1 else "",
+                "Abus3": abus[2] if len(abus)>2 else "",
                 "Commentaires": tweet_text
             })
+
         summary_df = pd.DataFrame(summary_list)
 
         st.dataframe(summary_df)
 
         st.download_button(
             label="⬇️ Télécharger Annotation_format.csv",
-            data=summary_df.to_csv(index=False, encoding="utf-8"),
+            data=summary_df.to_csv(index=False),
             file_name="Annotation_format.csv",
             mime="text/csv"
         )
 
     if st.button("🗑 Supprimer toutes les annotations"):
+
         if os.path.exists(ANNOT_FILE):
             os.remove(ANNOT_FILE)
-
-            st.session_state.idx = 0
-            st.session_state.label_key = 0
-            st.session_state.type_key = 0
-            st.session_state.intensite_key = 0
-            st.session_state.langue_key = 0
-
-            st.success("Annotations supprimées ✅")
+            st.success("Annotations supprimées")
             st.rerun()
-        else:
-            st.info("Aucun fichier à supprimer.")
