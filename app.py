@@ -290,7 +290,7 @@ if row is not None:
 # ---------------- ADMIN ----------------
 st.markdown("---")
 
-ADMIN_EMAILS = ["cissemoussa681@gmail.com","kdrame@univ-zig.sn"]
+ADMIN_EMAILS = ["cissemoussa681@gmail.com",""]
 
 if email in ADMIN_EMAILS:
 
