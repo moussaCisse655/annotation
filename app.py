@@ -211,12 +211,7 @@ if available.empty:
     st.success("🎉 Tous les commentaires ont atteint 3 annotations ou vous avez tout annoté.")
     row = None
 else:
-    if st.session_state.idx >= len(available):
-        st.success("🎉 Annotation terminée pour vous.")
-        row = None
-    else:
-        row = available.iloc[st.session_state.idx]
-
+    row = available.iloc[0]
 
 # ---------------- AFFICHAGE COMMENTAIRE ----------------
 if row is not None:
@@ -257,35 +252,33 @@ if row is not None:
 
     if st.button("💾 Enregistrer et suivant"):
 
-        if label == "Choisir une option":
-            st.warning("Veuillez choisir une option.")
-            st.stop()
+    if label == "Choisir une option":
+        st.warning("Veuillez choisir une option.")
+        st.stop()
 
-        if "Français-Wolof" in langue and len(langue) > 1:
-            st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
-            st.stop()
+    if "Français-Wolof" in langue and len(langue) > 1:
+        st.warning("Si vous choisissez 'Français-Wolof', ne sélectionnez pas d'autres options.")
+        st.stop()
 
-        if not langue:
-            st.warning("Veuillez sélectionner au moins une langue.")
-            st.stop()
+    if not langue:
+        st.warning("Veuillez sélectionner au moins une langue.")
+        st.stop()
 
-        save_annotation({
-            "comment_id": comment_id,
-            "email": email,
-            "label": label,
-            "type_abus": ", ".join(type_abus) if label == "abusive" else "",
-            "intensite": ", ".join(intensite) if label == "abusive" else "",
-            "langue": ", ".join(langue)
-        })
+    save_annotation({
+        "comment_id": comment_id,
+        "email": email,
+        "label": label,
+        "type_abus": ", ".join(type_abus) if label == "abusive" else "",
+        "intensite": ", ".join(intensite) if label == "abusive" else "",
+        "langue": ", ".join(langue)
+    })
 
-        st.session_state.idx += 1
-        st.session_state.label_key += 1
-        st.session_state.type_key += 1
-        st.session_state.intensite_key += 1
-        st.session_state.langue_key += 1
+    st.session_state.label_key += 1
+    st.session_state.type_key += 1
+    st.session_state.intensite_key += 1
+    st.session_state.langue_key += 1
 
-        st.rerun()
-
+    st.rerun()
 
 # ---------------- ADMIN ----------------
 st.markdown("---")
